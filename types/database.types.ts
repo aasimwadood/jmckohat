@@ -41,7 +41,7 @@ export type FypEvaluationCriterionEnum =
 type DepartmentsRow = {
   id: string; name: string; code: string; hod_profile_id: string | null;
   description: string | null; image_path: string | null; established_year: number | null;
-  created_at: string; updated_at: string;
+  labs_count: number; created_at: string; updated_at: string;
 };
 type ProfilesRow = {
   id: string; role: UserRoleEnum; full_name: string; email: string; phone: string | null;
@@ -208,63 +208,91 @@ type AuditLogRow = {
   entity_id: string | null; metadata: Json | null; created_at: string;
 };
 type MessagesRow = {
-  id: string; name: string; email: string; subject: string | null; body: string;
-  created_at: string;
+  id: string; name: string; email: string; phone_number: string | null; subject: string | null;
+  body: string; created_at: string;
 };
 
-type SiteSettingsRow = { key: string; value: Json; updated_at: string };
+type SiteSettingsRow = { key: string; value: string; updated_at: string };
 type LeadershipRow = {
-  id: string; name: string; designation: string; message: string | null;
+  id: string; title: string | null; first_name: string | null; last_name: string | null;
+  position: string | null; department: string | null; message: string | null;
   photo_path: string | null; display_order: number;
 };
 type PortalHighlightsRow = {
   id: string; title: string; description: string | null; display_order: number;
 };
-type PortalNewsRow = { id: string; title: string; body: string | null; published_at: string };
+type PortalNewsRow = {
+  id: string; title: string; body: string | null; category: string | null; published_at: string;
+};
 type PortalStatsRow = { id: string; label: string; value: string; display_order: number };
 type PortalFeaturesRow = {
-  id: string; title: string; description: string | null; icon: string | null; display_order: number;
+  id: string; title: string; description: string | null; icon: string | null;
+  gradient: string | null; stat: string | null; stat_label: string | null; display_order: number;
+};
+type InstitutionFacultiesRow = {
+  id: string; name: string; dean: string | null; description: string | null;
+  full_detail: string | null; image_path: string | null; color: string | null;
+  programs: string[]; display_order: number;
+};
+type PortalQuickStatsRow = {
+  id: string; icon: string | null; label: string; value: string; color_class: string | null;
+  display_order: number;
 };
 type FacultyCategoriesRow = { id: string; name: string; display_order: number };
 type FacultyDirectoryRow = {
   id: string; category_id: string | null; department_id: string | null; name: string;
   designation: string | null; qualification: string | null; photo_path: string | null;
-  display_order: number;
+  specialization: string | null; email: string | null; phone: string | null;
+  publications_count: number; display_order: number;
 };
 type DownloadCategoriesRow = { id: string; name: string; display_order: number };
 type DownloadsRow = {
-  id: string; category_id: string | null; title: string; file_path: string; uploaded_at: string;
+  id: string; category_id: string | null; title: string; file_path: string;
+  file_size_bytes: number | null; uploaded_at: string;
 };
 type ProgramCategoriesRow = { id: string; name: string; display_order: number };
 type ProgramDetailsRow = {
   id: string; category_id: string | null; department_id: string | null; name: string;
-  duration: string | null; description: string | null; display_order: number;
+  duration: string | null; description: string | null; credit_hours: number | null;
+  eligibility: string | null; specializations: string | null; display_order: number;
 };
 type ProgramRequirementsRow = {
-  id: string; category_id: string | null; requirement: string; display_order: number;
+  id: string; category_id: string | null; requirement: string; requirement_type: string;
+  display_order: number;
 };
 type ProgramFeesRow = {
-  id: string; category_id: string | null; fee_head: string; amount: number; display_order: number;
+  id: string; category_id: string | null; program_name: string; admission_fee: number;
+  tuition_fee: number; total_fee: number; display_order: number;
 };
 type AdditionalFeeCategoriesRow = { id: string; name: string; display_order: number };
 type AdditionalFeeItemsRow = {
   id: string; category_id: string | null; item_name: string; amount: number; display_order: number;
 };
-type ApplyStepsRow = { id: string; step_number: number; title: string; description: string | null };
+type ApplyStepsRow = {
+  id: string; step_number: number; title: string; description: string | null;
+  icon: string | null; color: string | null;
+};
 type ImportantDatesRow = {
-  id: string; label: string; event_date: string; display_order: number;
+  id: string; event: string; start_date: string | null; end_date: string | null; display_order: number;
 };
 type FooterInfoRow = {
   id: string; location: string | null; phone_no: string | null; email: string | null;
   copyright: string | null;
 };
-type ContactInfoRow = { id: string; label: string; value: string; display_order: number };
-type OfficeHoursRow = { id: string; day_range: string; hours: string; display_order: number };
+type ContactInfoRow = {
+  id: string; icon: string | null; title: string | null; description: string | null;
+  details: string | null; display_order: number;
+};
+type OfficeHoursRow = {
+  id: string; day: string | null; opening_time: string | null; closing_time: string | null;
+  status: string; display_order: number;
+};
 type DepartmentContactsRow = {
   id: string; department_id: string | null; phone: string | null; email: string | null;
 };
 type CampusLocationsRow = {
   id: string; name: string; address: string | null; map_url: string | null;
+  phone: string | null; email: string | null;
 };
 
 // Table<Row, InsertOptionalKeys> builds the Supabase-style
@@ -279,7 +307,7 @@ type Table<Row, InsertOptionalKeys extends keyof Row> = {
 export type Database = {
   public: {
     Tables: {
-      departments: Table<DepartmentsRow, "id" | "hod_profile_id" | "description" | "image_path" | "established_year" | "created_at" | "updated_at">;
+      departments: Table<DepartmentsRow, "id" | "hod_profile_id" | "description" | "image_path" | "established_year" | "labs_count" | "created_at" | "updated_at">;
       profiles: Table<ProfilesRow, "phone" | "department_id" | "avatar_path" | "current_semester_id" | "is_active" | "created_at" | "updated_at">;
       programs: Table<ProgramsRow, "id" | "created_at">;
       academic_sessions: Table<AcademicSessionsRow, "id" | "is_active" | "created_at">;
@@ -326,28 +354,30 @@ export type Database = {
       messages: Table<MessagesRow, "id" | "subject" | "created_at">;
 
       site_settings: Table<SiteSettingsRow, "value" | "updated_at">;
-      leadership: Table<LeadershipRow, "id" | "message" | "photo_path" | "display_order">;
+      leadership: Table<LeadershipRow, "id" | "title" | "first_name" | "last_name" | "position" | "department" | "message" | "photo_path" | "display_order">;
       portal_highlights: Table<PortalHighlightsRow, "id" | "description" | "display_order">;
-      portal_news: Table<PortalNewsRow, "id" | "body" | "published_at">;
+      portal_news: Table<PortalNewsRow, "id" | "body" | "category" | "published_at">;
       portal_stats: Table<PortalStatsRow, "id" | "display_order">;
-      portal_features: Table<PortalFeaturesRow, "id" | "description" | "icon" | "display_order">;
+      portal_features: Table<PortalFeaturesRow, "id" | "description" | "icon" | "gradient" | "stat" | "stat_label" | "display_order">;
+      institution_faculties: Table<InstitutionFacultiesRow, "id" | "dean" | "description" | "full_detail" | "image_path" | "color" | "programs" | "display_order">;
+      portal_quick_stats: Table<PortalQuickStatsRow, "id" | "icon" | "color_class" | "display_order">;
       faculty_categories: Table<FacultyCategoriesRow, "id" | "display_order">;
-      faculty_directory: Table<FacultyDirectoryRow, "id" | "category_id" | "department_id" | "designation" | "qualification" | "photo_path" | "display_order">;
+      faculty_directory: Table<FacultyDirectoryRow, "id" | "category_id" | "department_id" | "designation" | "qualification" | "photo_path" | "specialization" | "email" | "phone" | "publications_count" | "display_order">;
       download_categories: Table<DownloadCategoriesRow, "id" | "display_order">;
-      downloads: Table<DownloadsRow, "id" | "category_id" | "uploaded_at">;
+      downloads: Table<DownloadsRow, "id" | "category_id" | "file_size_bytes" | "uploaded_at">;
       program_categories: Table<ProgramCategoriesRow, "id" | "display_order">;
-      program_details: Table<ProgramDetailsRow, "id" | "category_id" | "department_id" | "duration" | "description" | "display_order">;
-      program_requirements: Table<ProgramRequirementsRow, "id" | "category_id" | "display_order">;
-      program_fees: Table<ProgramFeesRow, "id" | "category_id" | "display_order">;
+      program_details: Table<ProgramDetailsRow, "id" | "category_id" | "department_id" | "duration" | "description" | "credit_hours" | "eligibility" | "specializations" | "display_order">;
+      program_requirements: Table<ProgramRequirementsRow, "id" | "category_id" | "requirement_type" | "display_order">;
+      program_fees: Table<ProgramFeesRow, "id" | "category_id" | "admission_fee" | "tuition_fee" | "total_fee" | "display_order">;
       additional_fee_categories: Table<AdditionalFeeCategoriesRow, "id" | "display_order">;
       additional_fee_items: Table<AdditionalFeeItemsRow, "id" | "category_id" | "display_order">;
-      apply_steps: Table<ApplyStepsRow, "id" | "description">;
-      important_dates: Table<ImportantDatesRow, "id" | "display_order">;
+      apply_steps: Table<ApplyStepsRow, "id" | "description" | "icon" | "color">;
+      important_dates: Table<ImportantDatesRow, "id" | "start_date" | "end_date" | "display_order">;
       footer_info: Table<FooterInfoRow, "id" | "location" | "phone_no" | "email" | "copyright">;
-      contact_info: Table<ContactInfoRow, "id" | "display_order">;
-      office_hours: Table<OfficeHoursRow, "id" | "display_order">;
+      contact_info: Table<ContactInfoRow, "id" | "icon" | "title" | "description" | "details" | "display_order">;
+      office_hours: Table<OfficeHoursRow, "id" | "day" | "opening_time" | "closing_time" | "status" | "display_order">;
       department_contacts: Table<DepartmentContactsRow, "id" | "department_id" | "phone" | "email">;
-      campus_locations: Table<CampusLocationsRow, "id" | "address" | "map_url">;
+      campus_locations: Table<CampusLocationsRow, "id" | "address" | "map_url" | "phone" | "email">;
     };
     Views: { [_ in never]: never };
     Functions: {
