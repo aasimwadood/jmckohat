@@ -154,4 +154,16 @@ Security-sensitive business logic moved server-side as `SECURITY DEFINER` Postgr
 
 **Bootstrapping the first admin:** there's necessarily a chicken-and-egg problem — `provisionStaffAction` requires an existing admin to call it. To create the very first admin: register normally as a student (or invite via the Supabase dashboard's Authentication → Users → Invite), then run `update profiles set role = 'admin' where email = '...';` directly in the Supabase SQL editor once. Every subsequent staff account goes through `provisionStaffAction`.
 
-**Still needed from you:** the `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API → service_role) — `.env.local` has a blank placeholder for it. It's not required for anything built so far (login/register/session only need the anon key), but `provisionStaffAction` (and Storage admin operations in Phase 10) need it, server-side only.
+**Update:** you provided the service-role key; it's in `.env.local` and verified working (`auth.admin.listUsers`).
+
+## 6. Status: Phase 6 (core layout) & Phase 7 (public pages) — complete
+
+**Phase 6** — `components/layout/{header,footer,dashboard-layout}.tsx` (Header/Footer ported faithfully from the legacy design; DashboardLayout's sidebar nav now links to real sub-routes instead of the legacy's client-side tab-switching, per Next.js routing conventions) + `app/(public)/layout.tsx` + the full `app/dashboard/<role>/{layout,page}.tsx` skeleton for all 8 roles, each guarded by `requireRole()`. Verified via curl: unauthenticated requests to `/dashboard/admin` correctly 307-redirect to `/login?redirectTo=...`.
+
+**Phase 7** — all 10 public pages (Home, About, Contact, Departments, Programs, Faculty, How to Apply, Requirements, Fee Structure, Downloads) ported as Server Components querying Supabase directly. Every route was checked against the live project — 200 responses, real data rendering, not just a clean type-check. Contact's message form is now a real Zod-validated Server Action (the legacy form posted to an endpoint whose existence was never confirmed).
+
+**Migrations 0011–0022**: porting each page against its actual source (not just the Phase 1 audit summary) surfaced real gaps between the Phase 3 schema guesses and what the pages need — documented per-migration. All forward-only; nothing already shipped was edited in place.
+
+**Convention going forward:** avoid PostgREST embedded/nested selects (`.select("programs(name)")`) — the hand-authored `Database` type has no `Relationships` metadata, so these fail to type-check. Every page does separate queries + an in-memory join instead.
+
+**Next up:** Phase 8 (8 dashboards) and Phase 9 (business modules — admissions, promotions, FYP, timetable, results) are the largest remaining chunks, each comparable in size to Phase 7. Storage (Phase 10) is needed before file upload/download features in those dashboards can be real rather than stubbed.
