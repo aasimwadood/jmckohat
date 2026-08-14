@@ -3,7 +3,61 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
+import { createAssignmentSchema, gradeSubmissionSchema } from "@/lib/validations/assignments";
 import type { ActionResult } from "@/lib/actions/auth";
+
+export async function createAssignmentAction(formData: FormData): Promise<ActionResult> {
+  const profile = await requireRole("faculty");
+
+  const parsed = createAssignmentSchema.safeParse({
+    courseId: formData.get("courseId"),
+    title: formData.get("title"),
+    description: formData.get("description"),
+    dueDate: formData.get("dueDate"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("assignments").insert({
+    course_id: parsed.data.courseId,
+    faculty_profile_id: profile.id,
+    title: parsed.data.title,
+    description: parsed.data.description || null,
+    due_date: new Date(parsed.data.dueDate).toISOString(),
+  });
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/faculty/assignments");
+  return {};
+}
+
+export async function gradeSubmissionAction(formData: FormData): Promise<ActionResult> {
+  await requireRole("faculty");
+
+  const parsed = gradeSubmissionSchema.safeParse({
+    submissionId: formData.get("submissionId"),
+    grade: formData.get("grade"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from("assignment_submissions")
+    .update({ grade: parsed.data.grade, graded_at: new Date().toISOString(), graded_by: user?.id })
+    .eq("id", parsed.data.submissionId);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/faculty/assignments");
+  return {};
+}
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB, matches the legacy dialog's stated limit
 const ALLOWED_TYPES = [
