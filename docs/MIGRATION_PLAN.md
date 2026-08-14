@@ -116,3 +116,30 @@ This is a draft for discussion, not final — final schema will be delivered as 
 ## 3. Open questions — need your decision before implementation
 
 These are the genuine ambiguities the task instructions require me to surface rather than guess on. Answering them changes real design decisions (schema shape, auth flow, and how much net-new backend logic gets built vs. deferred).
+
+**Resolved:** full replacement (no ASP.NET coexistence) · self-registration is students-only, staff are provisioned server-side · real backend for every screen including the previously-mock Controller/Coordinator/Course File Report/CRUD stubs · Next.js built in place at the repo root.
+
+---
+
+## 4. Status: Phase 2 (scaffold) & Phase 3 (database) — complete
+
+**Phase 2 — Next.js scaffold**
+- Legacy Vite app moved intact to `legacy-vite-src/` (reference only, excluded from the TS build) — nothing deleted, everything reversible via git history.
+- New root: `app/`, `components/ui/` (all 47 shadcn primitives ported, `"use client"` added, imports repointed to `@/lib/utils`), `lib/`, `types/`, `supabase/migrations/`.
+- `lib/supabase/{client,server,admin,middleware}.ts` — browser client, server client (cookie-based session), service-role admin client (`server-only`-guarded), and the middleware session-refresh helper.
+- `middleware.ts` protects `/dashboard/*` and redirects authenticated users away from `/login`, `/register` — UX convenience only, not the authorization boundary (that's RLS + server-side role checks, added in Phase 4/5).
+- `package.json` rewritten for Next 15 / React 19 / Supabase / Zod / RHF; `npm install` and `npm run build` both verified clean (zero TypeScript errors, zero lint errors) as of this checkpoint.
+
+**Phase 3 — Database (`supabase/migrations/0001`–`0010`)**
+~2,100 lines of SQL, 50+ tables, full RLS on every table, across: profiles/departments/orgs, courses & timetable, coursework (assignments/materials/exams/results), admissions, promotions & fees, FYP, operations (announcements/notifications/controller/coordinator/administration/course-file-reports/role-permissions/audit-log), public CMS content, and Storage buckets/policies.
+
+Security-sensitive business logic moved server-side as `SECURITY DEFINER` Postgres functions rather than left as client-trusted writes:
+- `admit_student()` — atomic registration-number generation (was client-computed in the legacy app), enforces `fee_approved → admitted`.
+- `approve_admission_fee()`, `cancel_admission()` — role-checked status transitions; the `admissions` table has no blanket UPDATE policy, so these functions are the only way to change status.
+- `register_for_promotion()`, `verify_promotion_fee()` — server-enforced course-count cap (was a client-side check only), fee verification is still the promotion trigger per the legacy workflow.
+- `create_fyp_group()`, `respond_to_fyp_supervision()`, `nominate_fyp_group()`, `archive_fyp_group()` — group-size cap and supervisor-quota enforcement moved server-side.
+- `profiles.role`/`department_id`/`is_active` are column-privilege-restricted (`REVOKE`/`GRANT update (...)`) so a user can never self-escalate role via a crafted UPDATE, even though they can update their own `full_name`/`phone`/`avatar_path`.
+
+**Known limitation:** these migrations have been written carefully and reviewed for syntax/logic, but have **not yet been executed against a live Postgres/Supabase instance** in this environment (no Docker/Supabase CLI available here). Running `supabase db push` (or pasting into the SQL editor) against a real project is the next concrete verification step, ideally before or during Phase 4.
+
+**Not yet done:** `types/database.types.ts` is still a placeholder — it should be regenerated (`npm run db:types`) once a live Supabase project has these migrations applied, and application code in later phases should import types from it rather than hand-rolled interfaces.
