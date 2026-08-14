@@ -91,12 +91,12 @@ create policy "courses_select_authenticated" on courses
 create policy "courses_write_admin_or_own_department" on courses
   for all to authenticated
   using (
-    current_role() = 'admin'
-    or (current_role() = 'department' and department_id = current_department_id())
+    current_user_role() = 'admin'
+    or (current_user_role() = 'department' and department_id = current_department_id())
   )
   with check (
-    current_role() = 'admin'
-    or (current_role() = 'department' and department_id = current_department_id())
+    current_user_role() = 'admin'
+    or (current_user_role() = 'department' and department_id = current_department_id())
   );
 
 create policy "course_faculty_select_authenticated" on course_faculty
@@ -104,16 +104,16 @@ create policy "course_faculty_select_authenticated" on course_faculty
 create policy "course_faculty_write_admin_or_department" on course_faculty
   for all to authenticated
   using (
-    current_role() = 'admin'
+    current_user_role() = 'admin'
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from courses c where c.id = course_id and c.department_id = current_department_id())
     )
   )
   with check (
-    current_role() = 'admin'
+    current_user_role() = 'admin'
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from courses c where c.id = course_id and c.department_id = current_department_id())
     )
   );
@@ -123,25 +123,25 @@ create policy "enrollments_select_own_or_scoped" on enrollments
   using (
     student_profile_id = auth.uid()
     or teaches_course(course_id)
-    or current_role() in ('admin', 'principal', 'controller')
+    or current_user_role() in ('admin', 'principal', 'controller')
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from courses c where c.id = course_id and c.department_id = current_department_id())
     )
   );
 create policy "enrollments_write_admin_or_department" on enrollments
   for all to authenticated
   using (
-    current_role() = 'admin'
+    current_user_role() = 'admin'
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from courses c where c.id = course_id and c.department_id = current_department_id())
     )
   )
   with check (
-    current_role() = 'admin'
+    current_user_role() = 'admin'
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from courses c where c.id = course_id and c.department_id = current_department_id())
     )
   );
@@ -151,10 +151,10 @@ create policy "timetable_select_authenticated" on timetable_entries
 create policy "timetable_write_scoped" on timetable_entries
   for all to authenticated
   using (
-    current_role() in ('admin', 'coordinator')
-    or (current_role() = 'department' and department_id = current_department_id())
+    current_user_role() in ('admin', 'coordinator')
+    or (current_user_role() = 'department' and department_id = current_department_id())
   )
   with check (
-    current_role() in ('admin', 'coordinator')
-    or (current_role() = 'department' and department_id = current_department_id())
+    current_user_role() in ('admin', 'coordinator')
+    or (current_user_role() = 'department' and department_id = current_department_id())
   );

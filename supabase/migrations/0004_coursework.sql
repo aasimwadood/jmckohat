@@ -108,16 +108,16 @@ create policy "assignments_select_enrolled_or_scoped" on assignments
       select 1 from enrollments e
       where e.course_id = assignments.course_id and e.student_profile_id = auth.uid()
     )
-    or current_role() in ('admin', 'principal')
+    or current_user_role() in ('admin', 'principal')
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from courses c where c.id = course_id and c.department_id = current_department_id())
     )
   );
 create policy "assignments_write_faculty_own_course" on assignments
   for all to authenticated
-  using (current_role() = 'admin' or (current_role() = 'faculty' and teaches_course(course_id)))
-  with check (current_role() = 'admin' or (current_role() = 'faculty' and teaches_course(course_id)));
+  using (current_user_role() = 'admin' or (current_user_role() = 'faculty' and teaches_course(course_id)))
+  with check (current_user_role() = 'admin' or (current_user_role() = 'faculty' and teaches_course(course_id)));
 
 create policy "submissions_select_own_or_faculty" on assignment_submissions
   for select to authenticated
@@ -126,7 +126,7 @@ create policy "submissions_select_own_or_faculty" on assignment_submissions
     or exists (
       select 1 from assignments a where a.id = assignment_id and teaches_course(a.course_id)
     )
-    or current_role() = 'admin'
+    or current_user_role() = 'admin'
   );
 create policy "submissions_insert_own" on assignment_submissions
   for insert to authenticated
@@ -144,32 +144,32 @@ create policy "materials_select_enrolled_or_scoped" on course_materials
       select 1 from enrollments e
       where e.course_id = course_materials.course_id and e.student_profile_id = auth.uid()
     )
-    or current_role() in ('admin', 'principal')
+    or current_user_role() in ('admin', 'principal')
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from courses c where c.id = course_id and c.department_id = current_department_id())
     )
   );
 create policy "materials_write_faculty_own_course" on course_materials
   for all to authenticated
-  using (current_role() = 'admin' or (current_role() = 'faculty' and teaches_course(course_id)))
-  with check (current_role() = 'admin' or (current_role() = 'faculty' and teaches_course(course_id)));
+  using (current_user_role() = 'admin' or (current_user_role() = 'faculty' and teaches_course(course_id)))
+  with check (current_user_role() = 'admin' or (current_user_role() = 'faculty' and teaches_course(course_id)));
 
 create policy "exam_schedules_select_authenticated" on exam_schedules
   for select to authenticated using (true);
 create policy "exam_schedules_write_scoped" on exam_schedules
   for all to authenticated
   using (
-    current_role() in ('admin', 'controller')
+    current_user_role() in ('admin', 'controller')
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from courses c where c.id = course_id and c.department_id = current_department_id())
     )
   )
   with check (
-    current_role() in ('admin', 'controller')
+    current_user_role() in ('admin', 'controller')
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from courses c where c.id = course_id and c.department_id = current_department_id())
     )
   );
@@ -179,13 +179,13 @@ create policy "results_select_own_or_scoped" on results
   using (
     student_profile_id = auth.uid()
     or teaches_course(course_id)
-    or current_role() in ('admin', 'principal', 'controller')
+    or current_user_role() in ('admin', 'principal', 'controller')
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from courses c where c.id = course_id and c.department_id = current_department_id())
     )
   );
 create policy "results_write_faculty_own_course" on results
   for all to authenticated
-  using (current_role() = 'admin' or (current_role() = 'faculty' and teaches_course(course_id)))
-  with check (current_role() = 'admin' or (current_role() = 'faculty' and teaches_course(course_id)));
+  using (current_user_role() = 'admin' or (current_user_role() = 'faculty' and teaches_course(course_id)))
+  with check (current_user_role() = 'admin' or (current_user_role() = 'faculty' and teaches_course(course_id)));

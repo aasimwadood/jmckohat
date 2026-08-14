@@ -214,13 +214,13 @@ create policy "announcements_select_scoped" on announcements
 create policy "announcements_select_own_drafts" on announcements
   for select to authenticated using (author_profile_id = auth.uid());
 create policy "announcements_select_admin_wide" on announcements
-  for select to authenticated using (current_role() in ('admin', 'principal'));
+  for select to authenticated using (current_user_role() in ('admin', 'principal'));
 create policy "announcements_write_staff" on announcements
   for all to authenticated
   using (
-    current_role() in ('admin', 'principal')
-    or (current_role() = 'department' and department_id = current_department_id())
-    or (current_role() = 'faculty' and teaches_course(course_id))
+    current_user_role() in ('admin', 'principal')
+    or (current_user_role() = 'department' and department_id = current_department_id())
+    or (current_user_role() = 'faculty' and teaches_course(course_id))
   )
   with check (author_profile_id = auth.uid());
 
@@ -229,90 +229,90 @@ create policy "notifications_select_own" on notifications
 create policy "notifications_update_own" on notifications
   for update to authenticated using (profile_id = auth.uid()) with check (profile_id = auth.uid());
 create policy "notifications_insert_staff" on notifications
-  for insert to authenticated with check (is_staff() or current_role() in ('faculty', 'department'));
+  for insert to authenticated with check (is_staff() or current_user_role() in ('faculty', 'department'));
 
 create policy "transcript_requests_select_scoped" on transcript_requests
   for select to authenticated
-  using (student_profile_id = auth.uid() or current_role() in ('admin', 'controller', 'principal'));
+  using (student_profile_id = auth.uid() or current_user_role() in ('admin', 'controller', 'principal'));
 create policy "transcript_requests_insert_own" on transcript_requests
   for insert to authenticated with check (student_profile_id = auth.uid());
 create policy "transcript_requests_update_controller" on transcript_requests
   for update to authenticated
-  using (current_role() in ('admin', 'controller'))
-  with check (current_role() in ('admin', 'controller'));
+  using (current_user_role() in ('admin', 'controller'))
+  with check (current_user_role() in ('admin', 'controller'));
 
 create policy "result_queries_select_scoped" on result_queries
   for select to authenticated
-  using (student_profile_id = auth.uid() or current_role() in ('admin', 'controller', 'principal'));
+  using (student_profile_id = auth.uid() or current_user_role() in ('admin', 'controller', 'principal'));
 create policy "result_queries_insert_own" on result_queries
   for insert to authenticated with check (student_profile_id = auth.uid());
 create policy "result_queries_update_controller" on result_queries
   for update to authenticated
-  using (current_role() in ('admin', 'controller'))
-  with check (current_role() in ('admin', 'controller'));
+  using (current_user_role() in ('admin', 'controller'))
+  with check (current_user_role() in ('admin', 'controller'));
 
 create policy "academic_calendar_select_authenticated" on academic_calendar_events
   for select to authenticated using (true);
 create policy "academic_calendar_write_coordinator" on academic_calendar_events
   for all to authenticated
-  using (current_role() in ('admin', 'coordinator'))
-  with check (current_role() in ('admin', 'coordinator'));
+  using (current_user_role() in ('admin', 'coordinator'))
+  with check (current_user_role() in ('admin', 'coordinator'));
 
 create policy "library_items_select_authenticated" on library_items
   for select to authenticated using (true);
 create policy "library_items_write_administration" on library_items
   for all to authenticated
-  using (current_role() in ('admin', 'administration'))
-  with check (current_role() in ('admin', 'administration'));
+  using (current_user_role() in ('admin', 'administration'))
+  with check (current_user_role() in ('admin', 'administration'));
 
 create policy "support_tickets_select_scoped" on support_tickets
   for select to authenticated
-  using (raised_by = auth.uid() or current_role() in ('admin', 'administration'));
+  using (raised_by = auth.uid() or current_user_role() in ('admin', 'administration'));
 create policy "support_tickets_insert_own" on support_tickets
   for insert to authenticated with check (raised_by = auth.uid());
 create policy "support_tickets_update_administration" on support_tickets
   for update to authenticated
-  using (current_role() in ('admin', 'administration'))
-  with check (current_role() in ('admin', 'administration'));
+  using (current_user_role() in ('admin', 'administration'))
+  with check (current_user_role() in ('admin', 'administration'));
 
 create policy "campus_events_select_authenticated" on campus_events
   for select to authenticated using (true);
 create policy "campus_events_write_administration" on campus_events
   for all to authenticated
-  using (current_role() in ('admin', 'administration'))
-  with check (current_role() in ('admin', 'administration'));
+  using (current_user_role() in ('admin', 'administration'))
+  with check (current_user_role() in ('admin', 'administration'));
 
 create policy "scholarships_select_scoped" on scholarships
   for select to authenticated
-  using (student_profile_id = auth.uid() or current_role() in ('admin', 'administration', 'principal'));
+  using (student_profile_id = auth.uid() or current_user_role() in ('admin', 'administration', 'principal'));
 create policy "scholarships_write_administration" on scholarships
   for all to authenticated
-  using (current_role() in ('admin', 'administration'))
-  with check (current_role() in ('admin', 'administration'));
+  using (current_user_role() in ('admin', 'administration'))
+  with check (current_user_role() in ('admin', 'administration'));
 
 create policy "course_file_reports_select_scoped" on course_file_reports
   for select to authenticated
   using (
     teaches_course(course_id)
-    or current_role() in ('admin', 'principal')
-    or (current_role() = 'department' and exists (
+    or current_user_role() in ('admin', 'principal')
+    or (current_user_role() = 'department' and exists (
       select 1 from courses c where c.id = course_id and c.department_id = current_department_id()
     ))
   );
 create policy "course_file_reports_write_faculty_own_course" on course_file_reports
   for all to authenticated
-  using (current_role() = 'admin' or (current_role() = 'faculty' and teaches_course(course_id)))
-  with check (current_role() = 'admin' or (current_role() = 'faculty' and teaches_course(course_id)));
+  using (current_user_role() = 'admin' or (current_user_role() = 'faculty' and teaches_course(course_id)))
+  with check (current_user_role() = 'admin' or (current_user_role() = 'faculty' and teaches_course(course_id)));
 
 create policy "role_permissions_select_authenticated" on role_permissions
   for select to authenticated using (true);
 create policy "role_permissions_write_admin" on role_permissions
   for all to authenticated
-  using (current_role() = 'admin')
-  with check (current_role() = 'admin');
+  using (current_user_role() = 'admin')
+  with check (current_user_role() = 'admin');
 
 create policy "audit_log_select_admin" on audit_log
-  for select to authenticated using (current_role() = 'admin');
+  for select to authenticated using (current_user_role() = 'admin');
 -- Inserts happen exclusively from server-side code using the service-role
 -- client (lib/services write an audit row alongside every sensitive
 -- mutation) — no INSERT policy is granted to `authenticated`.
@@ -320,4 +320,4 @@ create policy "audit_log_select_admin" on audit_log
 create policy "messages_insert_anyone" on messages
   for insert to anon, authenticated with check (true);
 create policy "messages_select_staff" on messages
-  for select to authenticated using (current_role() in ('admin', 'administration'));
+  for select to authenticated using (current_user_role() in ('admin', 'administration'));

@@ -103,7 +103,7 @@ declare
   v_seq int;
   v_semester_id uuid;
 begin
-  if current_role() not in ('admin', 'department', 'faculty') then
+  if current_user_role() not in ('admin', 'department', 'faculty') then
     raise exception 'insufficient_privilege' using errcode = '42501';
   end if;
 
@@ -112,10 +112,10 @@ begin
     raise exception 'admission_not_found';
   end if;
 
-  if current_role() = 'department' and v_admission.department_id <> current_department_id() then
+  if current_user_role() = 'department' and v_admission.department_id <> current_department_id() then
     raise exception 'insufficient_privilege' using errcode = '42501';
   end if;
-  if current_role() = 'faculty' and v_admission.department_id <> current_department_id() then
+  if current_user_role() = 'faculty' and v_admission.department_id <> current_department_id() then
     raise exception 'insufficient_privilege' using errcode = '42501';
   end if;
 
@@ -162,7 +162,7 @@ as $$
 declare
   v_admission admissions;
 begin
-  if current_role() <> 'administration' then
+  if current_user_role() <> 'administration' then
     raise exception 'insufficient_privilege' using errcode = '42501';
   end if;
 
@@ -195,7 +195,7 @@ as $$
 declare
   v_admission admissions;
 begin
-  if current_role() not in ('admin', 'department', 'faculty') then
+  if current_user_role() not in ('admin', 'department', 'faculty') then
     raise exception 'insufficient_privilege' using errcode = '42501';
   end if;
 
@@ -203,7 +203,7 @@ begin
   if not found then
     raise exception 'admission_not_found';
   end if;
-  if current_role() in ('department', 'faculty') and v_admission.department_id <> current_department_id() then
+  if current_user_role() in ('department', 'faculty') and v_admission.department_id <> current_department_id() then
     raise exception 'insufficient_privilege' using errcode = '42501';
   end if;
 
@@ -230,21 +230,21 @@ create policy "admission_settings_select_authenticated" on admission_settings
   for select to authenticated using (true);
 create policy "admission_settings_write_department_or_admin" on admission_settings
   for all to authenticated
-  using (current_role() = 'admin' or (current_role() = 'department' and department_id = current_department_id()))
-  with check (current_role() = 'admin' or (current_role() = 'department' and department_id = current_department_id()));
+  using (current_user_role() = 'admin' or (current_user_role() = 'department' and department_id = current_department_id()))
+  with check (current_user_role() = 'admin' or (current_user_role() = 'department' and department_id = current_department_id()));
 
 create policy "admissions_select_scoped" on admissions
   for select to authenticated
   using (
     student_profile_id = auth.uid()
-    or current_role() in ('admin', 'principal', 'administration')
-    or (current_role() in ('department', 'faculty') and department_id = current_department_id())
+    or current_user_role() in ('admin', 'principal', 'administration')
+    or (current_user_role() in ('department', 'faculty') and department_id = current_department_id())
   );
 create policy "admissions_insert_department_or_faculty" on admissions
   for insert to authenticated
   with check (
-    current_role() = 'admin'
-    or (current_role() in ('department', 'faculty') and department_id = current_department_id())
+    current_user_role() = 'admin'
+    or (current_user_role() in ('department', 'faculty') and department_id = current_department_id())
   );
 -- No blanket UPDATE policy: status transitions only happen through
 -- admit_student / approve_admission_fee / cancel_admission above, which run
@@ -253,8 +253,8 @@ create policy "admissions_insert_department_or_faculty" on admissions
 -- setting registration_number) via PostgREST.
 create policy "admissions_update_admin_only" on admissions
   for update to authenticated
-  using (current_role() = 'admin')
-  with check (current_role() = 'admin');
+  using (current_user_role() = 'admin')
+  with check (current_user_role() = 'admin');
 
 create policy "admission_documents_select_scoped" on admission_documents
   for select to authenticated
@@ -262,8 +262,8 @@ create policy "admission_documents_select_scoped" on admission_documents
     exists (
       select 1 from admissions ad where ad.id = admission_id and (
         ad.student_profile_id = auth.uid()
-        or current_role() in ('admin', 'principal', 'administration')
-        or (current_role() in ('department', 'faculty') and ad.department_id = current_department_id())
+        or current_user_role() in ('admin', 'principal', 'administration')
+        or (current_user_role() in ('department', 'faculty') and ad.department_id = current_department_id())
       )
     )
   );
@@ -272,8 +272,8 @@ create policy "admission_documents_write_department_or_faculty" on admission_doc
   with check (
     exists (
       select 1 from admissions ad where ad.id = admission_id and (
-        current_role() = 'admin'
-        or (current_role() in ('department', 'faculty') and ad.department_id = current_department_id())
+        current_user_role() = 'admin'
+        or (current_user_role() in ('department', 'faculty') and ad.department_id = current_department_id())
       )
     )
   );

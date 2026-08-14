@@ -64,7 +64,7 @@ begin
     raise exception 'promotion_not_found';
   end if;
 
-  if v_promotion.student_profile_id <> auth.uid() and current_role() not in ('admin', 'department', 'faculty') then
+  if v_promotion.student_profile_id <> auth.uid() and current_user_role() not in ('admin', 'department', 'faculty') then
     raise exception 'insufficient_privilege' using errcode = '42501';
   end if;
 
@@ -101,7 +101,7 @@ as $$
 declare
   v_promotion promotions;
 begin
-  if current_role() <> 'administration' then
+  if current_user_role() <> 'administration' then
     raise exception 'insufficient_privilege' using errcode = '42501';
   end if;
 
@@ -137,38 +137,38 @@ create policy "fee_payments_select_scoped" on fee_payments
   for select to authenticated
   using (
     student_profile_id = auth.uid()
-    or current_role() in ('admin', 'principal', 'administration')
+    or current_user_role() in ('admin', 'principal', 'administration')
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from profiles p where p.id = student_profile_id and p.department_id = current_department_id())
     )
   );
 create policy "fee_payments_write_admin_or_administration" on fee_payments
   for all to authenticated
-  using (current_role() in ('admin', 'administration'))
-  with check (current_role() in ('admin', 'administration'));
+  using (current_user_role() in ('admin', 'administration'))
+  with check (current_user_role() in ('admin', 'administration'));
 
 create policy "promotions_select_scoped" on promotions
   for select to authenticated
   using (
     student_profile_id = auth.uid()
-    or current_role() in ('admin', 'principal', 'administration')
+    or current_user_role() in ('admin', 'principal', 'administration')
     or (
-      current_role() in ('department', 'faculty')
+      current_user_role() in ('department', 'faculty')
       and exists (select 1 from profiles p where p.id = student_profile_id and p.department_id = current_department_id())
     )
   );
 create policy "promotions_insert_admin_or_department" on promotions
   for insert to authenticated
   with check (
-    current_role() = 'admin'
+    current_user_role() = 'admin'
     or (
-      current_role() = 'department'
+      current_user_role() = 'department'
       and exists (select 1 from profiles p where p.id = student_profile_id and p.department_id = current_department_id())
     )
   );
 -- No blanket UPDATE: status/fee transitions only via the functions above.
 create policy "promotions_update_admin_only" on promotions
   for update to authenticated
-  using (current_role() = 'admin')
-  with check (current_role() = 'admin');
+  using (current_user_role() = 'admin')
+  with check (current_user_role() = 'admin');

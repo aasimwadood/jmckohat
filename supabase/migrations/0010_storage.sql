@@ -28,8 +28,8 @@ create policy "avatars_write_own_folder" on storage.objects
 -- public-assets: admin-managed only (reads are public via the bucket flag).
 create policy "public_assets_write_admin" on storage.objects
   for all to authenticated
-  using (bucket_id = 'public-assets' and current_role() = 'admin')
-  with check (bucket_id = 'public-assets' and current_role() = 'admin');
+  using (bucket_id = 'public-assets' and current_user_role() = 'admin')
+  with check (bucket_id = 'public-assets' and current_user_role() = 'admin');
 
 -- course-materials: same access rule as the course_materials table.
 create policy "course_materials_bucket_select" on storage.objects
@@ -42,20 +42,20 @@ create policy "course_materials_bucket_select" on storage.objects
         select 1 from enrollments e
         where e.course_id = ((storage.foldername(name))[1])::uuid and e.student_profile_id = auth.uid()
       )
-      or current_role() in ('admin', 'principal')
+      or current_user_role() in ('admin', 'principal')
     )
   );
 create policy "course_materials_bucket_write" on storage.objects
   for insert to authenticated
   with check (
     bucket_id = 'course-materials'
-    and (current_role() = 'admin' or teaches_course(((storage.foldername(name))[1])::uuid))
+    and (current_user_role() = 'admin' or teaches_course(((storage.foldername(name))[1])::uuid))
   );
 create policy "course_materials_bucket_delete" on storage.objects
   for delete to authenticated
   using (
     bucket_id = 'course-materials'
-    and (current_role() = 'admin' or teaches_course(((storage.foldername(name))[1])::uuid))
+    and (current_user_role() = 'admin' or teaches_course(((storage.foldername(name))[1])::uuid))
   );
 
 -- assignment-submissions: student owns their own submission folder;
@@ -70,7 +70,7 @@ create policy "assignment_submissions_bucket_select" on storage.objects
         select 1 from assignments a
         where a.id = ((storage.foldername(name))[1])::uuid and teaches_course(a.course_id)
       )
-      or current_role() = 'admin'
+      or current_user_role() = 'admin'
     )
   );
 create policy "assignment_submissions_bucket_insert" on storage.objects
@@ -87,8 +87,8 @@ create policy "fyp_deliverables_bucket_select" on storage.objects
       where g.id = ((storage.foldername(name))[1])::uuid and (
         g.supervisor_profile_id = auth.uid()
         or exists (select 1 from fyp_members m where m.fyp_group_id = g.id and m.student_profile_id = auth.uid())
-        or current_role() in ('admin', 'principal')
-        or (current_role() = 'department' and g.department_id = current_department_id())
+        or current_user_role() in ('admin', 'principal')
+        or (current_user_role() = 'department' and g.department_id = current_department_id())
       )
     )
   );
@@ -111,8 +111,8 @@ create policy "admission_documents_bucket_select" on storage.objects
       select 1 from admissions ad
       where ad.id = ((storage.foldername(name))[1])::uuid and (
         ad.student_profile_id = auth.uid()
-        or current_role() in ('admin', 'principal', 'administration')
-        or (current_role() in ('department', 'faculty') and ad.department_id = current_department_id())
+        or current_user_role() in ('admin', 'principal', 'administration')
+        or (current_user_role() in ('department', 'faculty') and ad.department_id = current_department_id())
       )
     )
   );
@@ -123,8 +123,8 @@ create policy "admission_documents_bucket_insert" on storage.objects
     and exists (
       select 1 from admissions ad
       where ad.id = ((storage.foldername(name))[1])::uuid and (
-        current_role() = 'admin'
-        or (current_role() in ('department', 'faculty') and ad.department_id = current_department_id())
+        current_user_role() = 'admin'
+        or (current_user_role() in ('department', 'faculty') and ad.department_id = current_department_id())
       )
     )
   );

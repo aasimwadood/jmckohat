@@ -103,7 +103,7 @@ declare
   v_member_id uuid;
   v_assigned int;
 begin
-  if current_role() <> 'student' then
+  if current_user_role() <> 'student' then
     raise exception 'insufficient_privilege' using errcode = '42501';
   end if;
 
@@ -193,7 +193,7 @@ as $$
 declare
   v_group fyp_groups;
 begin
-  if current_role() <> 'department' then
+  if current_user_role() <> 'department' then
     raise exception 'insufficient_privilege' using errcode = '42501';
   end if;
   select * into v_group from fyp_groups where id = p_group_id and department_id = current_department_id() for update;
@@ -215,7 +215,7 @@ as $$
 declare
   v_group fyp_groups;
 begin
-  if current_role() <> 'department' then
+  if current_user_role() <> 'department' then
     raise exception 'insufficient_privilege' using errcode = '42501';
   end if;
   select * into v_group from fyp_groups where id = p_group_id and department_id = current_department_id() for update;
@@ -241,23 +241,23 @@ create policy "fyp_config_select_authenticated" on fyp_semester_config
   for select to authenticated using (true);
 create policy "fyp_config_write_department_or_admin" on fyp_semester_config
   for all to authenticated
-  using (current_role() = 'admin' or (current_role() = 'department' and department_id = current_department_id()))
-  with check (current_role() = 'admin' or (current_role() = 'department' and department_id = current_department_id()));
+  using (current_user_role() = 'admin' or (current_user_role() = 'department' and department_id = current_department_id()))
+  with check (current_user_role() = 'admin' or (current_user_role() = 'department' and department_id = current_department_id()));
 
 create policy "fyp_groups_select_scoped" on fyp_groups
   for select to authenticated
   using (
     supervisor_profile_id = auth.uid()
     or exists (select 1 from fyp_members m where m.fyp_group_id = fyp_groups.id and m.student_profile_id = auth.uid())
-    or current_role() in ('admin', 'principal')
-    or (current_role() in ('department', 'coordinator') and department_id = current_department_id())
+    or current_user_role() in ('admin', 'principal')
+    or (current_user_role() in ('department', 'coordinator') and department_id = current_department_id())
   );
 -- Inserts happen only via create_fyp_group(); status/supervisor transitions
 -- only via the functions above. Admin retains a raw escape hatch for support.
 create policy "fyp_groups_update_admin_only" on fyp_groups
   for update to authenticated
-  using (current_role() = 'admin')
-  with check (current_role() = 'admin');
+  using (current_user_role() = 'admin')
+  with check (current_user_role() = 'admin');
 
 create policy "fyp_members_select_scoped" on fyp_members
   for select to authenticated
@@ -266,8 +266,8 @@ create policy "fyp_members_select_scoped" on fyp_members
     or exists (
       select 1 from fyp_groups g where g.id = fyp_group_id and (
         g.supervisor_profile_id = auth.uid()
-        or current_role() in ('admin', 'principal')
-        or (current_role() = 'department' and g.department_id = current_department_id())
+        or current_user_role() in ('admin', 'principal')
+        or (current_user_role() = 'department' and g.department_id = current_department_id())
       )
     )
   );
@@ -279,8 +279,8 @@ create policy "fyp_proposals_select_scoped" on fyp_proposals
       select 1 from fyp_groups g where g.id = fyp_group_id and (
         g.supervisor_profile_id = auth.uid()
         or exists (select 1 from fyp_members m where m.fyp_group_id = g.id and m.student_profile_id = auth.uid())
-        or current_role() in ('admin', 'principal')
-        or (current_role() = 'department' and g.department_id = current_department_id())
+        or current_user_role() in ('admin', 'principal')
+        or (current_user_role() = 'department' and g.department_id = current_department_id())
       )
     )
   );
@@ -301,8 +301,8 @@ create policy "fyp_deliverables_select_scoped" on fyp_deliverables
       select 1 from fyp_groups g where g.id = fyp_group_id and (
         g.supervisor_profile_id = auth.uid()
         or exists (select 1 from fyp_members m where m.fyp_group_id = g.id and m.student_profile_id = auth.uid())
-        or current_role() in ('admin', 'principal')
-        or (current_role() = 'department' and g.department_id = current_department_id())
+        or current_user_role() in ('admin', 'principal')
+        or (current_user_role() = 'department' and g.department_id = current_department_id())
       )
     )
   );
@@ -319,8 +319,8 @@ create policy "fyp_evaluations_select_scoped" on fyp_evaluations
       select 1 from fyp_groups g where g.id = fyp_group_id and (
         g.supervisor_profile_id = auth.uid()
         or exists (select 1 from fyp_members m where m.fyp_group_id = g.id and m.student_profile_id = auth.uid())
-        or current_role() in ('admin', 'principal')
-        or (current_role() = 'department' and g.department_id = current_department_id())
+        or current_user_role() in ('admin', 'principal')
+        or (current_user_role() = 'department' and g.department_id = current_department_id())
       )
     )
   );

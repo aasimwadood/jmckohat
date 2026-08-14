@@ -57,7 +57,7 @@ alter table departments
 -- Helper functions used throughout RLS policies. SECURITY DEFINER + a fixed
 -- search_path so they can read `profiles` regardless of the caller's own
 -- RLS visibility into that table (avoids recursive-policy issues).
-create or replace function current_role()
+create or replace function current_user_role()
 returns user_role
 language sql
 security definer
@@ -84,7 +84,7 @@ security definer
 set search_path = public
 stable
 as $$
-  select current_role() in ('admin', 'principal', 'controller', 'coordinator', 'administration');
+  select current_user_role() in ('admin', 'principal', 'controller', 'coordinator', 'administration');
 $$;
 
 -- Programs, academic sessions, semesters ---------------------------------
@@ -156,35 +156,36 @@ alter table programs enable row level security;
 alter table academic_sessions enable row level security;
 alter table semesters enable row level security;
 
--- Departments/programs/sessions/semesters: readable by any authenticated
--- user (needed for dropdowns everywhere), writable only by admin.
-create policy "departments_select_authenticated" on departments
-  for select to authenticated using (true);
+-- Departments/programs/sessions/semesters: publicly readable (the public
+-- Departments page and the student registration form's department picker
+-- both need this before the visitor has a session), writable only by admin.
+create policy "departments_select_public" on departments
+  for select to anon, authenticated using (true);
 create policy "departments_write_admin" on departments
   for all to authenticated
-  using (current_role() = 'admin')
-  with check (current_role() = 'admin');
+  using (current_user_role() = 'admin')
+  with check (current_user_role() = 'admin');
 
-create policy "programs_select_authenticated" on programs
-  for select to authenticated using (true);
+create policy "programs_select_public" on programs
+  for select to anon, authenticated using (true);
 create policy "programs_write_admin" on programs
   for all to authenticated
-  using (current_role() = 'admin')
-  with check (current_role() = 'admin');
+  using (current_user_role() = 'admin')
+  with check (current_user_role() = 'admin');
 
 create policy "academic_sessions_select_authenticated" on academic_sessions
   for select to authenticated using (true);
 create policy "academic_sessions_write_admin" on academic_sessions
   for all to authenticated
-  using (current_role() = 'admin')
-  with check (current_role() = 'admin');
+  using (current_user_role() = 'admin')
+  with check (current_user_role() = 'admin');
 
 create policy "semesters_select_authenticated" on semesters
   for select to authenticated using (true);
 create policy "semesters_write_admin" on semesters
   for all to authenticated
-  using (current_role() = 'admin')
-  with check (current_role() = 'admin');
+  using (current_user_role() = 'admin')
+  with check (current_user_role() = 'admin');
 
 -- Profiles: everyone can see their own; department peers (staff of the same
 -- department) can see each other for rosters; admin/principal see all.
@@ -204,7 +205,7 @@ create policy "profiles_select_same_department" on profiles
 
 create policy "profiles_select_admin_wide" on profiles
   for select to authenticated
-  using (current_role() in ('admin', 'principal'));
+  using (current_user_role() in ('admin', 'principal'));
 
 create policy "profiles_update_self_basic_info" on profiles
   for update to authenticated

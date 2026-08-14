@@ -198,6 +198,6 @@ begin
   foreach t in array tables loop
     execute format('alter table %I enable row level security', t);
     execute format('create policy "%s_select_public" on %I for select to anon, authenticated using (true)', t, t);
-    execute format('create policy "%s_write_admin" on %I for all to authenticated using (current_role() = ''admin'') with check (current_role() = ''admin'')', t, t);
+    execute format('create policy "%s_write_admin" on %I for all to authenticated using (current_user_role() = ''admin'') with check (current_user_role() = ''admin'')', t, t);
   end loop;
 end $$;
