@@ -1,8 +1,15 @@
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, TrendingUp, DollarSign, FileText, Award, Bell } from "lucide-react";
 import { DashboardLayout, type DashboardNavItem } from "@/components/layout/dashboard-layout";
 import { requireRole } from "@/lib/auth/session";
 
-const NAVIGATION: DashboardNavItem[] = [{ name: "Overview", icon: LayoutDashboard, href: "/dashboard/principal" }];
+const NAVIGATION: DashboardNavItem[] = [
+  { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard/principal" },
+  { name: "Academic Performance", icon: TrendingUp, href: "/dashboard/principal/academic" },
+  { name: "Financial", icon: DollarSign, href: "/dashboard/principal/financial" },
+  { name: "Departmental Reports", icon: FileText, href: "/dashboard/principal/departments" },
+  { name: "Exam Results", icon: Award, href: "/dashboard/principal/results" },
+  { name: "Announcements", icon: Bell, href: "/dashboard/principal/announcements" },
+];
 
 export default async function PrincipalLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireRole("principal");
