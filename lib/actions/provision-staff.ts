@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth/session";
 import { provisionStaffSchema } from "@/lib/validations/staff";
+import { logAudit } from "@/lib/actions/audit";
 import type { ActionResult } from "@/lib/actions/auth";
 
 /**
@@ -12,7 +13,7 @@ import type { ActionResult } from "@/lib/actions/auth";
  * The new user is invited by email and sets their own password.
  */
 export async function provisionStaffAction(formData: FormData): Promise<ActionResult> {
-  await requireRole("admin");
+  const caller = await requireRole("admin");
 
   const parsed = provisionStaffSchema.safeParse({
     fullName: formData.get("fullName"),
@@ -54,6 +55,8 @@ export async function provisionStaffAction(formData: FormData): Promise<ActionRe
   if (profileError) {
     return { error: profileError.message };
   }
+
+  await logAudit(caller.id, "provision_staff", "profiles", invited.user.id, { role, email });
 
   return {};
 }
