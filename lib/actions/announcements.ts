@@ -26,8 +26,10 @@ export async function createAnnouncementAction(
   if (typeof body !== "string" || !body.trim()) return { error: "Content is required" };
 
   const courseId = formData.get("courseId");
-  const departmentId = formData.get("departmentId");
 
+  // For department scope, the department is always the caller's own —
+  // never trust a client-supplied department id, even though RLS would
+  // reject a mismatch anyway.
   const supabase = await createClient();
   const { error } = await supabase.from("announcements").insert({
     author_profile_id: profile.id,
@@ -35,7 +37,7 @@ export async function createAnnouncementAction(
     title: title.trim(),
     body: body.trim(),
     course_id: scope === "course" && typeof courseId === "string" ? courseId : null,
-    department_id: scope === "department" && typeof departmentId === "string" ? departmentId : null,
+    department_id: scope === "department" ? profile.departmentId : null,
     published_at: new Date().toISOString(),
   });
 
