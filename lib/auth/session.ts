@@ -11,6 +11,7 @@ export type CurrentProfile = {
   email: string;
   phone: string | null;
   departmentId: string | null;
+  currentSemesterId: string | null;
   avatarPath: string | null;
   isActive: boolean;
 };
@@ -31,7 +32,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, role, full_name, email, phone, department_id, avatar_path, is_active")
+    .select("id, role, full_name, email, phone, department_id, current_semester_id, avatar_path, is_active")
     .eq("id", user.id)
     .single();
 
@@ -44,6 +45,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
     email: profile.email,
     phone: profile.phone,
     departmentId: profile.department_id,
+    currentSemesterId: profile.current_semester_id,
     avatarPath: profile.avatar_path,
     isActive: profile.is_active,
   };

@@ -28,6 +28,7 @@ export type FypDeliverableTypeEnum =
 export type AnnouncementScopeEnum = "institution" | "department" | "course";
 export type MaterialTypeEnum = "lecture_slides" | "notes" | "assignment" | "reference" | "other";
 export type EnrollmentStatusEnum = "active" | "completed" | "dropped";
+export type AttendanceStatusEnum = "present" | "absent" | "leave";
 export type MeritCategoryEnum =
   | "open_merit" | "local_area" | "special_merit" | "sports_quota"
   | "college_employee_child" | "minority_quota" | "disabled_person_quota";
@@ -92,6 +93,10 @@ type ResultsRow = {
   id: string; student_profile_id: string; course_id: string; semester_id: string;
   quiz1: number; quiz2: number; midterm: number; assignments_score: number; total: number;
   submitted_by: string | null; submitted_at: string; updated_at: string;
+};
+type AttendanceRow = {
+  id: string; student_profile_id: string; course_id: string; semester_id: string;
+  session_date: string; status: AttendanceStatusEnum; marked_by: string | null; created_at: string;
 };
 
 type AdmissionSettingsRow = {
@@ -323,6 +328,7 @@ export type Database = {
       course_materials: Table<CourseMaterialsRow, "id" | "description" | "type" | "created_at" | "updated_at">;
       exam_schedules: Table<ExamSchedulesRow, "id" | "room" | "created_by" | "created_at">;
       results: Table<ResultsRow, "id" | "quiz1" | "quiz2" | "midterm" | "assignments_score" | "total" | "submitted_by" | "submitted_at" | "updated_at">;
+      attendance: Table<AttendanceRow, "id" | "marked_by" | "created_at">;
 
       admission_settings: Table<AdmissionSettingsRow, "is_enabled" | "enabled_by" | "enabled_at">;
       admissions: Table<AdmissionsRow, "id" | "cnic" | "contact_number" | "email" | "merit_category" | "merit_number" | "status" | "registration_fee" | "crf_fee" | "admission_fee" | "tuition_fee" | "examination_fee" | "hostel_fee" | "transport_fee" | "fee_receipt_number" | "fee_paid_at" | "fee_approved_by" | "registration_number" | "semester_id" | "approved_by" | "approved_at" | "canceled_by" | "canceled_at" | "cancel_reason" | "student_profile_id" | "created_at" | "updated_at">;
@@ -410,6 +416,7 @@ export type Database = {
       announcement_scope: AnnouncementScopeEnum;
       material_type: MaterialTypeEnum;
       enrollment_status: EnrollmentStatusEnum;
+      attendance_status: AttendanceStatusEnum;
       merit_category: MeritCategoryEnum;
       fee_status: FeeStatusEnum;
     };
