@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { VerifyFeeDialog } from "./verify-fee-dialog";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   pending: "secondary",
@@ -29,6 +30,7 @@ export default async function AdministrationAdmissionsPage() {
 
   return (
     <Card>
+      <LiveRefresh table="admissions" />
       <CardHeader>
         <CardTitle>Admissions — Fee Verification</CardTitle>
       </CardHeader>

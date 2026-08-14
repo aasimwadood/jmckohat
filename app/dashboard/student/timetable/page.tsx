@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { TimetableGrid, type TimetableEntryView } from "@/components/features/timetable-grid";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function StudentTimetablePage() {
   const profile = await requireRole("student");
@@ -49,6 +50,7 @@ export default async function StudentTimetablePage() {
 
   return (
     <div>
+      <LiveRefresh table="timetable_entries" />
       <h1 className="mb-6 text-2xl font-semibold text-gray-900">My Timetable</h1>
       <TimetableGrid entries={view} />
     </div>

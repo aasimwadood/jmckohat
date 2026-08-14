@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/supabase/storage";
 import { RespondToSupervisionButtons } from "./respond-buttons";
 import { EvaluationForm } from "./evaluation-form";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function FacultyFypPage() {
   const profile = await requireRole("faculty");
@@ -48,6 +49,7 @@ export default async function FacultyFypPage() {
 
   return (
     <div className="space-y-6">
+      <LiveRefresh table="fyp_groups" filter={`supervisor_profile_id=eq.${profile.id}`} />
       <Card>
         <CardHeader>
           <CardTitle>Pending Supervision Requests</CardTitle>

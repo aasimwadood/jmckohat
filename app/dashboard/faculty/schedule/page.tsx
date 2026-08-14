@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { DAY_NAMES } from "@/lib/constants/timetable";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function FacultySchedulePage() {
   const profile = await requireRole("faculty");
@@ -22,6 +23,7 @@ export default async function FacultySchedulePage() {
 
   return (
     <Card>
+      <LiveRefresh table="timetable_entries" filter={`faculty_profile_id=eq.${profile.id}`} />
       <CardHeader>
         <CardTitle>Class Schedule</CardTitle>
       </CardHeader>

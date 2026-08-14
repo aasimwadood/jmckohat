@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { CreateAnnouncementDialog } from "./create-announcement-dialog";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function FacultyAnnouncementsPage() {
   const profile = await requireRole("faculty");
@@ -24,6 +25,7 @@ export default async function FacultyAnnouncementsPage() {
 
   return (
     <Card>
+      <LiveRefresh table="announcements" />
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Announcements</CardTitle>

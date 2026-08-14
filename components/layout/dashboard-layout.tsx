@@ -13,11 +13,13 @@ export function DashboardLayout({
   userName,
   userRole,
   navigation,
+  notificationBell,
   children,
 }: {
   userName: string;
   userRole: UserRole;
   navigation: DashboardNavItem[];
+  notificationBell?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -38,6 +40,7 @@ export function DashboardLayout({
             </div>
 
             <div className="flex items-center gap-4">
+              {notificationBell}
               <div className="hidden text-right sm:block">
                 <p className="text-sm text-gray-900">{userName}</p>
                 <p className="text-xs text-gray-500">{ROLE_LABELS[userRole]}</p>

@@ -10,7 +10,9 @@ import {
   Award,
 } from "lucide-react";
 import { DashboardLayout, type DashboardNavItem } from "@/components/layout/dashboard-layout";
+import { NotificationBell } from "@/components/features/realtime/notification-bell";
 import { requireRole } from "@/lib/auth/session";
+import { getInitialNotifications } from "@/lib/services/notifications";
 
 const NAVIGATION: DashboardNavItem[] = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard/faculty" },
@@ -28,9 +30,15 @@ const NAVIGATION: DashboardNavItem[] = [
 
 export default async function FacultyLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireRole("faculty");
+  const notifications = await getInitialNotifications(profile.id);
 
   return (
-    <DashboardLayout userName={profile.fullName} userRole={profile.role} navigation={NAVIGATION}>
+    <DashboardLayout
+      userName={profile.fullName}
+      userRole={profile.role}
+      navigation={NAVIGATION}
+      notificationBell={<NotificationBell userId={profile.id} initialNotifications={notifications} />}
+    >
       {children}
     </DashboardLayout>
   );

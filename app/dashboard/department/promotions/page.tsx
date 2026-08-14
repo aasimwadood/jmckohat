@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { PromotionsView, type PromotionRow } from "@/components/features/promotions/promotions-view";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function DepartmentPromotionsPage() {
   const profile = await requireRole("department");
@@ -49,6 +50,9 @@ export default async function DepartmentPromotionsPage() {
   }));
 
   return (
-    <PromotionsView role="department" departmentId={profile.departmentId} promotions={rows} availableCourses={courses ?? []} />
+    <>
+      <LiveRefresh table="promotions" />
+      <PromotionsView role="department" departmentId={profile.departmentId} promotions={rows} availableCourses={courses ?? []} />
+    </>
   );
 }

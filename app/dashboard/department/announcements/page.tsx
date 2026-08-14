@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { CreateDepartmentAnnouncementDialog } from "./create-announcement-dialog";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function DepartmentAnnouncementsPage() {
   const profile = await requireRole("department");
@@ -18,6 +19,7 @@ export default async function DepartmentAnnouncementsPage() {
 
   return (
     <Card>
+      {profile.departmentId && <LiveRefresh table="announcements" filter={`department_id=eq.${profile.departmentId}`} />}
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Department Announcements</CardTitle>

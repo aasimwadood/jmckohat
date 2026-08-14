@@ -1,6 +1,8 @@
 import { LayoutDashboard, UserPlus, Users, Calendar, FileCheck, BookOpen, TrendingUp, Bell } from "lucide-react";
 import { DashboardLayout, type DashboardNavItem } from "@/components/layout/dashboard-layout";
+import { NotificationBell } from "@/components/features/realtime/notification-bell";
 import { requireRole } from "@/lib/auth/session";
+import { getInitialNotifications } from "@/lib/services/notifications";
 
 const NAVIGATION: DashboardNavItem[] = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard/department" },
@@ -15,9 +17,15 @@ const NAVIGATION: DashboardNavItem[] = [
 
 export default async function DepartmentLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireRole("department");
+  const notifications = await getInitialNotifications(profile.id);
 
   return (
-    <DashboardLayout userName={profile.fullName} userRole={profile.role} navigation={NAVIGATION}>
+    <DashboardLayout
+      userName={profile.fullName}
+      userRole={profile.role}
+      navigation={NAVIGATION}
+      notificationBell={<NotificationBell userId={profile.id} initialNotifications={notifications} />}
+    >
       {children}
     </DashboardLayout>
   );

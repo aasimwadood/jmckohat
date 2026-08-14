@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { PromotionsView, type PromotionRow } from "@/components/features/promotions/promotions-view";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function AdministrationFinancePage() {
   await requireRole("administration");
@@ -41,6 +42,7 @@ export default async function AdministrationFinancePage() {
 
   return (
     <div className="space-y-6">
+      <LiveRefresh table="promotions" />
       <Card>
         <CardHeader>
           <CardTitle>Payments</CardTitle>

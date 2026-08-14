@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/supabase/storage";
 import { CreateFypGroupDialog } from "./create-group-dialog";
 import { UploadProposalForm, UploadDeliverableForm } from "./upload-forms";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function StudentFypPage() {
   const profile = await requireRole("student");
@@ -123,6 +124,8 @@ export default async function StudentFypPage() {
 
   return (
     <div className="space-y-6">
+      <LiveRefresh table="fyp_groups" filter={`id=eq.${activeGroup.id}`} />
+      <LiveRefresh table="fyp_proposals" filter={`fyp_group_id=eq.${activeGroup.id}`} />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">

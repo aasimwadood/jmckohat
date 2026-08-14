@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { AdmissionsView } from "@/components/features/admissions/admissions-view";
 import type { AdmissionRow } from "@/components/features/admissions/types";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function DepartmentAdmissionsPage() {
   const profile = await requireRole("department");
@@ -51,13 +52,16 @@ export default async function DepartmentAdmissionsPage() {
   }));
 
   return (
-    <AdmissionsView
-      role="department"
-      departmentId={profile.departmentId}
-      academicSessionId={activeSession?.id ?? null}
-      isEnabled={settings?.is_enabled ?? false}
-      programs={programs ?? []}
-      admissions={rows}
-    />
+    <>
+      <LiveRefresh table="admissions" filter={`department_id=eq.${profile.departmentId}`} />
+      <AdmissionsView
+        role="department"
+        departmentId={profile.departmentId}
+        academicSessionId={activeSession?.id ?? null}
+        isEnabled={settings?.is_enabled ?? false}
+        programs={programs ?? []}
+        admissions={rows}
+      />
+    </>
   );
 }

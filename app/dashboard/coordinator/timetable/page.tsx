@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DAY_NAMES } from "@/lib/constants/timetable";
 import { CreateTimetableEntryDialog } from "@/app/dashboard/admin/timetable/create-entry-dialog";
 import { DeleteEntryButton } from "@/app/dashboard/admin/timetable/delete-entry-button";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function CoordinatorTimetablePage() {
   await requireRole("coordinator");
@@ -25,6 +26,7 @@ export default async function CoordinatorTimetablePage() {
 
   return (
     <Card>
+      <LiveRefresh table="timetable_entries" />
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Timetable Management</CardTitle>

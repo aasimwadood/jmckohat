@@ -1,6 +1,8 @@
 import { LayoutDashboard, UserPlus, DollarSign, BookOpen, HelpCircle, Calendar } from "lucide-react";
 import { DashboardLayout, type DashboardNavItem } from "@/components/layout/dashboard-layout";
+import { NotificationBell } from "@/components/features/realtime/notification-bell";
 import { requireRole } from "@/lib/auth/session";
+import { getInitialNotifications } from "@/lib/services/notifications";
 
 // No "System Logs" entry here: audit_log is admin-only by RLS design
 // (0008_operations.sql), and its current content — staff provisioning,
@@ -17,9 +19,15 @@ const NAVIGATION: DashboardNavItem[] = [
 
 export default async function AdministrationLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireRole("administration");
+  const notifications = await getInitialNotifications(profile.id);
 
   return (
-    <DashboardLayout userName={profile.fullName} userRole={profile.role} navigation={NAVIGATION}>
+    <DashboardLayout
+      userName={profile.fullName}
+      userRole={profile.role}
+      navigation={NAVIGATION}
+      notificationBell={<NotificationBell userId={profile.id} initialNotifications={notifications} />}
+    >
       {children}
     </DashboardLayout>
   );
