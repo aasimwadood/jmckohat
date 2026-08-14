@@ -1,0 +1,30 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/bin/Debug/net9.0
+/obj
+obj\Debug
+
+# macOS
+.DS_Store
+
+# Legacy Vite build output
+/dist
+
+# Node / Next.js
+/node_modules
+/.next/
+/out/
+npm-debug.log*
+
+# Env files
+.env
+.env*.local
+!.env.example
+
+# Supabase local
+/supabase/.branches
+/supabase/.temp
+
