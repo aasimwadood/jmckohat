@@ -455,3 +455,5 @@ You asked for this partway through creating a batch of test admin accounts (whic
 - **`forgotPasswordAction` intentionally left email-based** — password reset delivery needs a real inbox no matter which identifier login uses, so there was nothing to gain by changing it, and doing so would've added complexity for no benefit.
 
 **Practical note for you**: your existing accounts now log in as `asim.wadood`, `test.admin`, and `test.principal` (not their email addresses). The 8 remaining test accounts from the interrupted batch can be finished once Supabase's email rate limit resets — say when you want me to pick that back up.
+
+**Follow-up**: widened back to accept either — the login field ("Username or Email") auto-detects which one was typed (presence of `@`) and resolves accordingly; only the username path needs the server-side lookup. Live-verified both.
