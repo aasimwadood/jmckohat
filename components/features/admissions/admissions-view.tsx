@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { UserPlus, Loader2 } from "lucide-react";
+import { UserPlus, Loader2, FileText, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import {
   admitStudentAction,
   cancelAdmissionAction,
   toggleAdmissionSettingsAction,
+  getAdmissionDocumentsAction,
+  uploadAdmissionDocumentAction,
+  type AdmissionDocumentRow,
 } from "@/lib/actions/admissions";
 import { MERIT_CATEGORIES } from "@/lib/validations/admissions";
 import type { AdmissionRow, AdmissionViewRole } from "./types";
@@ -57,6 +60,7 @@ export function AdmissionsView({
   const canAddStudent = role === "department" || role === "faculty" || role === "admin";
   const canApproveFee = role === "administration" || role === "admin";
   const canAdmitOrCancel = role === "department" || role === "faculty" || role === "admin";
+  const canUploadDocuments = role === "department" || role === "faculty" || role === "admin";
 
   return (
     <div className="space-y-6">
@@ -86,6 +90,7 @@ export function AdmissionsView({
                 <TableHead>Merit Category</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Reg. #</TableHead>
+                <TableHead>Documents</TableHead>
                 <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -104,6 +109,9 @@ export function AdmissionsView({
                   </TableCell>
                   <TableCell>{admission.registrationNumber ?? "—"}</TableCell>
                   <TableCell>
+                    <DocumentsDialog admission={admission} canUpload={canUploadDocuments} />
+                  </TableCell>
+                  <TableCell>
                     <RowActions
                       admission={admission}
                       canApproveFee={canApproveFee}
@@ -114,7 +122,7 @@ export function AdmissionsView({
               ))}
               {admissions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-8 text-center text-gray-500">
+                  <TableCell colSpan={6} className="py-8 text-center text-gray-500">
                     No admission records yet.
                   </TableCell>
                 </TableRow>
@@ -380,4 +388,113 @@ function RowActions({
   }
 
   return <span className="text-sm text-gray-400">—</span>;
+}
+
+function DocumentsDialog({ admission, canUpload }: { admission: AdmissionRow; canUpload: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [documents, setDocuments] = useState<AdmissionDocumentRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [label, setLabel] = useState("");
+  const [error, setError] = useState("");
+  const [isPending, startTransition] = useTransition();
+
+  const load = () => {
+    setLoading(true);
+    startTransition(async () => {
+      const docs = await getAdmissionDocumentsAction(admission.id);
+      setDocuments(docs);
+      setLoading(false);
+    });
+  };
+
+  const onOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (next) load();
+  };
+
+  const onUpload = (formData: FormData) => {
+    setError("");
+    formData.set("admissionId", admission.id);
+    formData.set("label", label);
+    startTransition(async () => {
+      const result = await uploadAdmissionDocumentAction(formData);
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        setLabel("");
+        load();
+      }
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="ghost">
+          <FileText className="mr-2 h-4 w-4" />
+          Documents
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Documents — {admission.fullName}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          {loading ? (
+            <p className="text-sm text-gray-500">Loading…</p>
+          ) : documents.length === 0 ? (
+            <p className="text-sm text-gray-500">No documents uploaded yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {documents.map((doc) => (
+                <li key={doc.id} className="flex items-center justify-between rounded-lg border p-2">
+                  <span className="text-sm font-medium">{doc.label}</span>
+                  {doc.url ? (
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center text-sm text-blue-600 hover:underline"
+                    >
+                      <Download className="mr-1 h-4 w-4" />
+                      View
+                    </a>
+                  ) : (
+                    <span className="text-sm text-gray-400">Unavailable</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {canUpload && (
+            <form action={onUpload} className="space-y-3 border-t pt-4">
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <div>
+                <Label htmlFor={`label-${admission.id}`}>Document Label *</Label>
+                <Input
+                  id={`label-${admission.id}`}
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  placeholder="e.g. CNIC, Matric Certificate"
+                  disabled={isPending}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor={`file-${admission.id}`}>File * (PDF, PNG, JPEG — max 10MB)</Label>
+                <Input id={`file-${admission.id}`} name="file" type="file" accept="application/pdf,image/png,image/jpeg" disabled={isPending} required />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                  Upload
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

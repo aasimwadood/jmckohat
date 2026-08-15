@@ -30,3 +30,8 @@ export const cancelAdmissionSchema = z.object({
   admissionId: z.string().uuid(),
   reason: z.string().trim().min(1, "A cancellation reason is required"),
 });
+
+export const uploadAdmissionDocumentSchema = z.object({
+  admissionId: z.string().uuid(),
+  label: z.string().trim().min(1, "A document label is required").max(100),
+});

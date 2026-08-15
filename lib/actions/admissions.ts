@@ -7,8 +7,14 @@ import {
   createAdmissionSchema,
   approveFeeSchema,
   cancelAdmissionSchema,
+  uploadAdmissionDocumentSchema,
 } from "@/lib/validations/admissions";
 import type { ActionResult } from "@/lib/actions/auth";
+import { getSignedUrl } from "@/lib/supabase/storage";
+import { logAudit } from "@/lib/actions/audit";
+
+const MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024; // matches the "admission-documents" bucket's file_size_limit
+const ALLOWED_DOCUMENT_TYPES = ["application/pdf", "image/png", "image/jpeg"];
 
 function randomTemporaryId() {
   return `TMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -75,7 +81,7 @@ export async function createAdmissionAction(formData: FormData): Promise<ActionR
 }
 
 export async function approveAdmissionFeeAction(formData: FormData): Promise<ActionResult> {
-  await requireRole("administration", "admin");
+  const profile = await requireRole("administration", "admin");
 
   const parsed = approveFeeSchema.safeParse({
     admissionId: formData.get("admissionId"),
@@ -90,22 +96,26 @@ export async function approveAdmissionFeeAction(formData: FormData): Promise<Act
   });
   if (error) return { error: error.message };
 
+  await logAudit(profile.id, "approve_admission_fee", "admissions", parsed.data.admissionId, {
+    receiptNumber: parsed.data.receiptNumber,
+  });
   revalidatePath("/dashboard", "layout");
   return {};
 }
 
 export async function admitStudentAction(admissionId: string): Promise<ActionResult> {
-  await requireRole("department", "faculty", "admin");
+  const profile = await requireRole("department", "faculty", "admin");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admit_student", { p_admission_id: admissionId });
   if (error) return { error: error.message };
 
+  await logAudit(profile.id, "admit_student", "admissions", admissionId);
   revalidatePath("/dashboard", "layout");
   return {};
 }
 
 export async function cancelAdmissionAction(formData: FormData): Promise<ActionResult> {
-  await requireRole("department", "faculty", "admin");
+  const profile = await requireRole("department", "faculty", "admin");
 
   const parsed = cancelAdmissionSchema.safeParse({
     admissionId: formData.get("admissionId"),
@@ -120,6 +130,66 @@ export async function cancelAdmissionAction(formData: FormData): Promise<ActionR
   });
   if (error) return { error: error.message };
 
+  await logAudit(profile.id, "cancel_admission", "admissions", parsed.data.admissionId, { reason: parsed.data.reason });
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
+
+export type AdmissionDocumentRow = { id: string; label: string; uploadedAt: string; url: string | null };
+
+export async function getAdmissionDocumentsAction(admissionId: string): Promise<AdmissionDocumentRow[]> {
+  await requireRole("department", "faculty", "administration", "admin", "principal");
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("admission_documents")
+    .select("id, label, file_path, uploaded_at")
+    .eq("admission_id", admissionId)
+    .order("uploaded_at", { ascending: false });
+
+  if (!data) return [];
+
+  return Promise.all(
+    data.map(async (doc) => ({
+      id: doc.id,
+      label: doc.label,
+      uploadedAt: doc.uploaded_at,
+      url: await getSignedUrl("admission-documents", doc.file_path),
+    })),
+  );
+}
+
+export async function uploadAdmissionDocumentAction(formData: FormData): Promise<ActionResult> {
+  const profile = await requireRole("department", "faculty", "admin");
+
+  const parsed = uploadAdmissionDocumentSchema.safeParse({
+    admissionId: formData.get("admissionId"),
+    label: formData.get("label"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Select a file to upload" };
+  if (file.size > MAX_DOCUMENT_SIZE_BYTES) return { error: "File is too large (max 10MB)" };
+  if (!ALLOWED_DOCUMENT_TYPES.includes(file.type)) return { error: "Accepted formats: PDF, PNG, JPEG" };
+
+  const supabase = await createClient();
+  const path = `${parsed.data.admissionId}/${Date.now()}-${file.name}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("admission-documents")
+    .upload(path, file, { contentType: file.type });
+  if (uploadError) return { error: "Upload failed. Please try again." };
+
+  const { error } = await supabase.from("admission_documents").insert({
+    admission_id: parsed.data.admissionId,
+    label: parsed.data.label,
+    file_path: path,
+    uploaded_by: profile.id,
+  });
+  if (error) return { error: error.message };
+
+  await logAudit(profile.id, "upload_admission_document", "admissions", parsed.data.admissionId, { label: parsed.data.label });
   revalidatePath("/dashboard", "layout");
   return {};
 }

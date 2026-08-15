@@ -135,10 +135,12 @@ Full detail, including the specific schema corrections made while porting each s
 There's no automated test suite (none existed in the legacy app either, and none was requested). What's been verified, and what to check yourself:
 
 **Verified already, against a live Supabase project, for every phase of this migration:**
-- `npm run build` passes with zero TypeScript/lint errors (78 routes).
-- RLS policies were checked live with real signed-in test accounts per role — not just read against the schema — confirming both "can do X" and, in a few security-critical cases, "correctly cannot do Y" (e.g. an Administration account gets zero rows from `audit_log`, not an error).
+- `npm run build` passes with zero TypeScript/lint errors (76 routes).
+- RLS policies were checked live with real signed-in test accounts per role — not just read against the schema — confirming both "can do X" and, in a few security-critical cases, "correctly cannot do Y" (e.g. an Administration account gets zero rows from `audit_log`, not an error; a department account gets zero admission-document rows for another department's admission).
 - Every `SECURITY DEFINER` RPC (`admit_student`, `approve_admission_fee`, `register_for_promotion`, etc.) was called live and returned the expected result or the expected clean error.
-- Storage upload/download round-tripped for course materials, assignment submissions, and FYP deliverables.
+
+**Currently broken at the infrastructure level — see the TODO above:**
+- Storage upload as a signed-in (`authenticated`-role) user fails project-wide with `DatabaseInvalidObjectDefinition`, for every bucket, discovered while verifying the new avatar/admission-document upload UI. Service-role uploads still work. This needs to be resolved on the Supabase project side (dashboard/support) before any file upload — course materials, assignment submissions, FYP deliverables, avatars, admission documents — can be trusted in production, even though every one of those code paths was written and previously exercised successfully.
 
 **Not verified — needs a real browser pass before you ship:**
 - [ ] Full click-through of every dashboard as a real logged-in user (this was built and back-end-verified in an environment without a working headless browser — see docs/MIGRATION_PLAN.md for why).
@@ -149,9 +151,10 @@ There's no automated test suite (none existed in the legacy app either, and none
 
 ## Remaining assumptions and TODOs
 
-- **File upload surfaces not built:** avatar/profile photo upload (bucket + RLS policy exist, no UI), admission document upload (same — `admission-documents` bucket and RLS exist, unused).
+- **⚠️ Storage uploads via the `authenticated` role are currently failing project-wide** — discovered while live-verifying the avatar/admission-document upload UI below. Every `storage.upload()` call made as a signed-in user (any bucket, any role) returns `StorageApiError: The database schema is invalid or incompatible.` (`code: DatabaseInvalidObjectDefinition`), while the same upload succeeds instantly via the service-role client, and normal table queries (PostgREST) work fine for the same signed-in user. This rules out an RLS-policy bug in `0010_storage.sql` and points to a Storage-service/schema state issue on the Supabase project itself. **Check the Storage section of your Supabase dashboard (or file a support request referencing that error code) before relying on any file upload in production** — this affects every upload path in the app (course materials, assignment submissions, FYP deliverables, avatars, admission documents), not just the newest two. See `docs/MIGRATION_PLAN.md` §8 for the full diagnostic.
+- **Avatar and admission document upload UI are now built** (`lib/actions/avatar.ts`, `lib/actions/admissions.ts`'s `uploadAdmissionDocumentAction`/`getAdmissionDocumentsAction`) — blocked from working end-to-end only by the Storage issue above, not by missing code.
 - **No payment gateway.** Fee payment is bank-challan/manual-verification only, matching what the legacy app *actually* did (its "Pay Now" dialog was a fake credit-card form with no real processor) — this wasn't downgraded, it was never real to begin with.
 - **"System Monitoring"** (Principal dashboard, legacy) was deliberately not built — it showed fake server/CPU health gauges with no real infrastructure behind them, and this app has no server infrastructure of its own to monitor (Supabase is managed).
-- **"System Logs"** is admin-only by design (RLS), and only two action types are currently audited (`provision_staff`, `deactivate_user`/`reactivate_user`). Extending `logAudit()` calls to more Server Actions is straightforward if you want broader coverage.
+- **"System Logs"** is admin-only by design (RLS). `logAudit()` now covers staff provisioning/deactivation plus the admissions and promotions money/status-transition RPCs (`admit_student`, `approve_admission_fee`, `cancel_admission`, `upload_admission_document`, `verify_promotion_fee`); extending it to more Server Actions is straightforward if you want even broader coverage.
 - **Course File Report** and **Curriculum Management** were fully mock/hardcoded in the legacy app with no real spec behind their detailed structure; both were rebuilt against real data/tables rather than reverse-engineering fake content.
 - **`legacy-vite-src/`** is kept in the repo for reference per your request — remove it (and the other `*.reference` config leftovers at the repo root) once you're done comparing against it.

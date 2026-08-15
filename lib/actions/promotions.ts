@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { registerCoursesSchema, verifyFeeSchema } from "@/lib/validations/promotions";
 import type { ActionResult } from "@/lib/actions/auth";
+import { logAudit } from "@/lib/actions/audit";
 
 /**
  * Creates a promotion row (status pending_registration) for every admitted
@@ -92,7 +93,7 @@ export async function registerPromotionCoursesAction(formData: FormData): Promis
 }
 
 export async function verifyPromotionFeeAction(formData: FormData): Promise<ActionResult> {
-  await requireRole("administration", "admin");
+  const profile = await requireRole("administration", "admin");
 
   const parsed = verifyFeeSchema.safeParse({
     promotionId: formData.get("promotionId"),
@@ -107,6 +108,9 @@ export async function verifyPromotionFeeAction(formData: FormData): Promise<Acti
   });
   if (error) return { error: error.message };
 
+  await logAudit(profile.id, "verify_promotion_fee", "promotions", parsed.data.promotionId, {
+    receiptNumber: parsed.data.receiptNumber,
+  });
   revalidatePath("/dashboard", "layout");
   return {};
 }

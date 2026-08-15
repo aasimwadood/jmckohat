@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { EditProfileForm } from "./edit-profile-form";
+import { AvatarUpload } from "./avatar-upload";
 
 export default async function StudentProfilePage() {
   const profile = await requireRole("student");
@@ -20,6 +21,10 @@ export default async function StudentProfilePage() {
   const { computeGpa } = await import("@/lib/utils/grading");
   const gpa = computeGpa((results ?? []).map((r) => r.total));
 
+  const avatarUrl = profile.avatarPath
+    ? supabase.storage.from("avatars").getPublicUrl(profile.avatarPath).data.publicUrl
+    : null;
+
   return (
     <Card>
       <CardHeader>
@@ -27,6 +32,7 @@ export default async function StudentProfilePage() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          <AvatarUpload avatarUrl={avatarUrl} fullName={profile.fullName} />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label="Full Name" value={profile.fullName} />
             <Field label="Email" value={profile.email} />
