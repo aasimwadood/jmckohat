@@ -9,17 +9,21 @@ export const metadata: Metadata = { title: "How to Apply" };
 
 const ICONS = { CheckCircle, FileText, Send, CreditCard, Calendar } as const;
 
+// Sourced from §6 of the official Admission Policy for Government Colleges
+// in Khyber Pakhtunkhwa (see the "Admission Policy" download on
+// /downloads for the complete text) — not a generic placeholder list.
 const REQUIRED_DOCUMENTS = [
-  "Completed Application Form",
-  "Academic Transcripts (attested)",
-  "Degree Certificate (attested)",
-  "CNIC Copy",
-  "Domicile Certificate",
-  "Recent Passport Size Photographs",
-  "Character Certificate",
-  "NOC (for employed candidates)",
-  "Entry Test Scorecard (if applicable)",
-  "Fee Challan Copy",
+  "SSC certificate (any level), and HSSC certificate for AD/BS programs",
+  "Detailed marks / provisional certificate of the last exam passed",
+  "Domicile certificate",
+  "Own / father's CNIC or Form B",
+  "Character certificate from the institution last attended (gazetted-officer-signed if passed privately)",
+  "Required number of colored photographs, per college policy",
+  "Quota eligibility certificate, if applying under a specified quota",
+  "Original migration certificate (Board to Board), if SSC/O-A Level is from a different board",
+  "Original migration certificate (Board to University), for BS/AD admission",
+  "Verified HSSC detailed marks sheet from the concerned Board, for BS/AD admission",
+  "Affidavit of non-involvement in politics",
 ];
 
 export default async function HowToApplyPage() {
@@ -131,20 +135,17 @@ export default async function HowToApplyPage() {
             <CardContent className="p-8">
               <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
                 <div className="flex-1">
-                  <h3 className="mb-2 text-white">Application Fee</h3>
+                  <h3 className="mb-2 text-white">Processing Fee &amp; Full Policy</h3>
                   <p className="mb-4 text-blue-100">
-                    Non-refundable application fee must be paid through designated bank branches.
+                    Applications aren&apos;t processed until the processing fee is paid within the specified time.
+                    See the Fee Structure page for exact amounts, and the full Admission Policy for the complete
+                    eligibility, quota, and merit rules.
                   </p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-white">PKR</span>
-                    <span className="text-white">2,000</span>
-                    <span className="text-sm text-blue-200">(for all programs)</span>
-                  </div>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-4">
                   <Link href="/downloads">
                     <Button size="lg" variant="secondary">
-                      Download Application Form
+                      Download Admission Policy
                     </Button>
                   </Link>
                   <Link href="/fee-structure">
@@ -168,12 +169,15 @@ export default async function HowToApplyPage() {
                 <div>
                   <h3 className="mb-4 text-gray-900">Important Notes</h3>
                   <ul className="space-y-2 text-gray-600">
-                    <li>• Incomplete applications will not be processed.</li>
-                    <li>• All documents must be attested by a gazetted officer.</li>
-                    <li>• Candidates are advised to apply well before the deadline.</li>
-                    <li>• Merit list will be displayed on the college notice board and website.</li>
-                    <li>• Original documents will be required at the time of admission.</li>
-                    <li>• The college reserves the right to cancel any application without assigning any reason.</li>
+                    <li>• Applications cannot be submitted after the due date — apply as soon as forms are available.</li>
+                    <li>• Students who failed one or more subjects in the preceding exam are not eligible to apply.</li>
+                    <li>• A character certificate must be signed by a gazetted officer if the last exam was passed privately.</li>
+                    <li>• Merit lists are displayed on the college notice board and the official admission website.</li>
+                    <li>
+                      • Shortlisted candidates must appear in person with a parent/guardian and original documents to
+                      confirm admission.
+                    </li>
+                    <li>• Seats not confirmed by fee payment within the specified period are offered to the next candidate on the merit list.</li>
                   </ul>
                 </div>
               </div>
