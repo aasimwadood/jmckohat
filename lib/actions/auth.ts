@@ -18,34 +18,38 @@ export async function loginAction(
   formData: FormData,
 ): Promise<ActionResult> {
   const parsed = loginSchema.safeParse({
-    username: formData.get("username"),
+    identifier: formData.get("identifier"),
     password: formData.get("password"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  // Login is username-based, but Supabase Auth itself is still email-based
-  // underneath — resolve username -> email first, server-side only, via
-  // the admin client (the caller has no session yet, so this can't go
-  // through the RLS-respecting client). Never expose this lookup to the
-  // browser directly, or it becomes a username enumeration endpoint.
-  const admin = createAdminClient();
-  const { data: accountLookup } = await admin
-    .from("profiles")
-    .select("email")
-    .eq("username", parsed.data.username.toLowerCase())
-    .maybeSingle();
+  // Accepts either a username or an email address in the same field. An
+  // email goes straight to signInWithPassword; a username has to be
+  // resolved to its email first, server-side only, via the admin client
+  // (there's no session yet for the RLS-respecting client to act as, and
+  // this lookup must never be exposed to the browser as its own endpoint —
+  // that would make it a username-enumeration oracle).
+  const identifier = parsed.data.identifier.trim();
+  let email = identifier;
 
-  if (!accountLookup) {
-    return { error: "Invalid username or password" };
+  if (!identifier.includes("@")) {
+    const admin = createAdminClient();
+    const { data: accountLookup } = await admin
+      .from("profiles")
+      .select("email")
+      .eq("username", identifier.toLowerCase())
+      .maybeSingle();
+
+    if (!accountLookup) {
+      return { error: "Invalid username or password" };
+    }
+    email = accountLookup.email;
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: accountLookup.email,
-    password: parsed.data.password,
-  });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: parsed.data.password });
 
   if (error) {
     return { error: "Invalid username or password" };
