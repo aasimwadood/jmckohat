@@ -10,18 +10,28 @@ export const metadata: Metadata = { title: "Departments" };
 export default async function DepartmentsPage() {
   const supabase = await createClient();
 
-  const [{ data: departments }, { data: programs }, { data: staff }] = await Promise.all([
+  const [{ data: departments }, { data: programs }, { data: students }, { data: facultyMembers }] = await Promise.all([
     supabase.from("departments").select("id, name, description, labs_count, hod_profile_id").order("name"),
     supabase.from("programs").select("department_id, name"),
-    supabase.from("profiles").select("id, full_name, department_id, role").in("role", ["student", "faculty"]),
+    supabase.from("profiles").select("id, department_id").eq("role", "student"),
+    // "Head" and "Faculty" here deliberately come from faculty_directory (the
+    // public staff directory), not profiles/hod_profile_id (real login
+    // accounts) — this is an informational public page, and the college has
+    // real staff on record long before any of them have a system login.
+    // hod_profile_id/profiles-role=faculty stay available for when real
+    // accounts exist, but aren't what this page should show today.
+    supabase.from("faculty_directory").select("department_id, name, designation").not("department_id", "is", null),
   ]);
 
-  const hodIds = (departments ?? []).map((d) => d.hod_profile_id).filter((id): id is string => !!id);
-  const { data: heads } =
-    hodIds.length > 0
-      ? await supabase.from("profiles").select("id, full_name").in("id", hodIds)
-      : { data: [] };
-  const headNames = new Map((heads ?? []).map((h) => [h.id, h.full_name]));
+  const headNameByDept = new Map<string, string>();
+  const facultyCounts = new Map<string, number>();
+  for (const member of facultyMembers ?? []) {
+    if (!member.department_id) continue;
+    facultyCounts.set(member.department_id, (facultyCounts.get(member.department_id) ?? 0) + 1);
+    if (member.designation?.includes("Head of Department")) {
+      headNameByDept.set(member.department_id, member.name);
+    }
+  }
 
   const programsByDepartment = new Map<string, string[]>();
   for (const program of programs ?? []) {
@@ -31,11 +41,9 @@ export default async function DepartmentsPage() {
   }
 
   const studentCounts = new Map<string, number>();
-  const facultyCounts = new Map<string, number>();
-  for (const person of staff ?? []) {
-    if (!person.department_id) continue;
-    const counts = person.role === "student" ? studentCounts : facultyCounts;
-    counts.set(person.department_id, (counts.get(person.department_id) ?? 0) + 1);
+  for (const student of students ?? []) {
+    if (!student.department_id) continue;
+    studentCounts.set(student.department_id, (studentCounts.get(student.department_id) ?? 0) + 1);
   }
 
   return (
@@ -64,7 +72,7 @@ export default async function DepartmentsPage() {
                       <div className="flex-1">
                         <h3 className="mb-2 text-gray-900">{dept.name}</h3>
                         <p className="text-blue-600">
-                          Head: {dept.hod_profile_id ? headNames.get(dept.hod_profile_id) : "Not yet assigned"}
+                          Head: {headNameByDept.get(dept.id) ?? "Not yet assigned"}
                         </p>
                       </div>
                     </div>
