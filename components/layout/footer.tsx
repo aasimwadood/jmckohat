@@ -6,7 +6,7 @@ const DEFAULT_FOOTER = {
   location: "Main Campus, University Road, Kohat",
   phone_no: "+92-123-4567890",
   email: "info@gpgckohat.edu.pk",
-  copyright: "GPGC Kohat Smart College. All rights reserved.",
+  copyright: "GPGC Kohat. All rights reserved.",
 };
 
 export async function Footer() {

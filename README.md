@@ -1,4 +1,4 @@
-# Smart College — GPGC Kohat
+# GPGC Kohat
 
 A university management system for Government Postgraduate College Kohat — public site, admissions, academics, and 8 role-specific dashboards (Student, Faculty, Department/HoD, Admin, Controller of Examinations, Coordinator, Principal, Administration).
 

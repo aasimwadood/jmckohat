@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "GPGC Kohat | Smart College",
+    default: "GPGC Kohat",
     template: "%s | GPGC Kohat",
   },
   description:
