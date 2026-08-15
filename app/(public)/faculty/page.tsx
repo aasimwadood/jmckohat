@@ -8,6 +8,19 @@ import { getCurrentProfile } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Faculty" };
 
+// Higher academic rank first within each tab. Checked most-specific first
+// since "Associate Professor" and "Assistant Professor" both contain the
+// substring "Professor" — a plain .includes("Professor") would misrank them
+// as equal to (or ahead of) a full Professor.
+function rankOf(designation: string | null): number {
+  if (!designation) return 5;
+  if (designation.includes("Associate Professor")) return 2;
+  if (designation.includes("Assistant Professor")) return 3;
+  if (designation.includes("Professor")) return 1;
+  if (designation.includes("Lecturer")) return 4;
+  return 5;
+}
+
 export default async function FacultyPage() {
   const supabase = await createClient();
   const profile = await getCurrentProfile();
@@ -79,6 +92,7 @@ export default async function FacultyPage() {
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {(members ?? [])
                     .filter((f) => f.category_id === cat.id)
+                    .sort((a, b) => rankOf(a.designation) - rankOf(b.designation))
                     .map((faculty) => (
                       <Card key={faculty.id} className="transition-all duration-300 hover:shadow-xl">
                         <CardContent className="p-6">
