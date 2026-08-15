@@ -291,7 +291,28 @@ Migrations `0026`–`0029` are applied to the live project (`bulqjxqdbfjbefbofzr
 
 ### 9.8 Bootstrap note
 
-There is currently no in-app way to create the first `hed_admin` — by design, mirroring how the first `admin` was bootstrapped originally. Until the org-provisioning actions are built, create one manually the same way:
+There is currently no in-app way to create the first `hed_admin` — by design, mirroring how the first `admin` was bootstrapped originally. Create one manually the same way:
 ```sql
 update profiles set role = 'hed_admin' where email = 'you@example.com';
 ```
+Every other org-level role (`directorate_admin`/`jmc_admin`/`college_admin`) now *does* have an in-app provisioning path — see §9.9.
+
+### 9.9 Status: dashboards, org CRUD, and provisioning — complete
+
+Built on top of the §9.6–9.8 foundation, in the same session:
+
+**Org CRUD** (`lib/validations/org.ts`, `lib/actions/org.ts`) — `createDirectorateAction`/`toggleDirectorateStatusAction` (hed_admin only), `createJmcAction`/`toggleJmcStatusAction` (hed_admin + directorate_admin, scoped by RLS to their own directorate), `createCollegeAction`/`toggleCollegeStatusAction` (hed_admin + directorate_admin + jmc_admin, RLS-scoped). Every action uses the RLS-respecting client, not the service-role client — `requireRole()` is only the coarse gate; the actual own-directorate/own-JMC scoping is enforced by the RLS policies from `0027`/`0029`, the same division of responsibility used throughout `lib/actions/admissions.ts`.
+
+**Org-admin provisioning** (`lib/actions/provision-org-admin.ts`) — `provisionOrgAdminAction` invites a `directorate_admin`/`jmc_admin`/`college_admin` by email, matching the hierarchy: hed_admin can assign any of the three; directorate_admin can assign jmc_admin/college_admin only within their own directorate; jmc_admin can assign college_admin only within their own JMC. This one **can't** lean on RLS for the scope check — it has to use the service-role client (the invitee has no session yet to act as), so the directorate/JMC ownership check is done by hand in the action, reading through the caller's own RLS-scoped client first (which independently reinforces the check: a directorate_admin outside the target JMC's directorate can't even `select` its `directorate_id` to begin with — confirmed live, see below). Keeps `jmcs.jmc_admin_profile_id`/`colleges.college_admin_profile_id` in sync as a denormalized back-pointer.
+
+**Dashboards**, one per new role, mirroring the existing 8 roles' `layout.tsx` (`NAVIGATION` array + `requireRole()` guard) + `page.tsx` convention exactly:
+- **HED** (`/dashboard/hed`): overview (directorate/JMC/college/user counts, GPGC vs GDC split), Directorates (full CRUD), JMCs (full CRUD + assign JMC Admin), Colleges (full CRUD + assign College Admin), Reports (directorate-wise and JMC-wise college/GPGC/GDC breakdowns), Audit Logs (system-wide — `audit_log` RLS extended in `0030` to grant hed_admin visibility, additive to the existing admin-only policy).
+- **Directorate** (`/dashboard/directorate`): overview, JMCs (CRUD scoped to own directorate + assign JMC Admin), Colleges (CRUD scoped to own directorate's JMCs + assign College Admin), Reports.
+- **JMC** (`/dashboard/jmc`): overview, Colleges (CRUD scoped to own JMC + assign College Admin), Reports.
+- **College Admin** (`/dashboard/college-admin`): **deliberately minimal** — a read-only college profile (org record, JMC/Directorate breadcrumb, department/student/faculty counts) and nothing else. `colleges` RLS grants write to hed_admin/directorate_admin/jmc_admin only, not college_admin, so there was never going to be an "edit college" screen here regardless. This is **not** a rebuild of what `/dashboard/admin` already does for this same college — see the flagged admin/college_admin overlap decision in §9. Confirmed live: a college_admin can read their own college row but a write attempt against it is silently filtered to 0 rows by RLS (no error returned — PostgREST's normal behavior for an RLS-blocked UPDATE with no matching rows, which is worth remembering next time a "no error but nothing changed" result needs interpreting).
+
+**Live verification** with disposable test accounts (two directorates, cross-directorate/cross-JMC attempts, a college_admin): hed_admin creates a full Directorate → JMC → College chain; a directorate_admin creates a second JMC within their own directorate but is correctly blocked creating one in another directorate; a jmc_admin creates and status-toggles a college within their own JMC; a directorate_admin from an unrelated directorate cannot even `select` a JMC outside their scope (confirms the provisioning action's manual scope check has RLS backing it, not just application logic); a college_admin reads their own college but a write attempt is silently blocked. One test-script false negative caught and corrected during this pass: the write-blocked check initially only looked at whether an `error` was returned (RLS-filtered updates return no error, just zero affected rows) — re-verified directly against the database that the college's name was in fact unchanged.
+
+`npm run build` passes clean (92 routes, zero TS/lint errors).
+
+**Not done in this pass, explicitly deferred**: rewiring RLS on the existing ~65 college-domain tables (courses, admissions, results, etc.) to add hed_admin/directorate_admin/jmc_admin visibility on top of what's already there (§9.4) — those roles currently can't see anything below the `colleges`/`jmcs`/`directorates` tables themselves (no student/faculty/academic data). Also deferred: real end-to-end testing of `provisionOrgAdminAction`'s email-invite path (would require sending real invite emails or mocking delivery — same category of limitation as the Playwright/browser-E2E gap already documented in the README).
