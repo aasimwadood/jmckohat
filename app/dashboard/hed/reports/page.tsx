@@ -7,12 +7,20 @@ export default async function HedReportsPage() {
   await requireRole("hed_admin");
   const supabase = await createClient();
 
-  const [{ data: directorates }, { data: jmcs }, { data: colleges }, { data: collegeTypes }] = await Promise.all([
-    supabase.from("directorates").select("id, name").order("name"),
-    supabase.from("jmcs").select("id, directorate_id, name").order("name"),
-    supabase.from("colleges").select("id, jmc_id, college_type_id"),
-    supabase.from("college_types").select("id, code"),
-  ]);
+  const [{ data: directorates }, { data: jmcs }, { data: colleges }, { data: collegeTypes }, { data: admissions }] =
+    await Promise.all([
+      supabase.from("directorates").select("id, name").order("name"),
+      supabase.from("jmcs").select("id, directorate_id, name").order("name"),
+      supabase.from("colleges").select("id, jmc_id, college_type_id"),
+      supabase.from("college_types").select("id, code"),
+      // Visible system-wide to hed_admin as of 0032_hed_hierarchy_org_visibility_policies.sql.
+      supabase.from("admissions").select("status"),
+    ]);
+
+  const admissionsByStatus = new Map<string, number>();
+  for (const a of admissions ?? []) {
+    admissionsByStatus.set(a.status, (admissionsByStatus.get(a.status) ?? 0) + 1);
+  }
 
   const typeCodeById = new Map((collegeTypes ?? []).map((t) => [t.id, t.code]));
   const jmcById = new Map((jmcs ?? []).map((j) => [j.id, j]));
@@ -63,6 +71,22 @@ export default async function HedReportsPage() {
               <p className="text-2xl font-bold text-gray-900">{totalGdc}</p>
               <p className="text-sm text-gray-500">GDCs</p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Admissions Funnel (system-wide)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {["pending", "fee_approved", "admitted", "canceled"].map((status) => (
+              <div key={status} className="rounded-lg border p-4 text-center">
+                <p className="text-2xl font-bold text-gray-900">{admissionsByStatus.get(status) ?? 0}</p>
+                <p className="text-sm text-gray-500 capitalize">{status.replace(/_/g, " ")}</p>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
