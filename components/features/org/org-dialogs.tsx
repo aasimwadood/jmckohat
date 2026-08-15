@@ -289,7 +289,26 @@ export function ProvisionOrgAdminDialog({
   orgId: string;
   label: string;
 }) {
-  const { open, setOpen, error, isPending, submit } = useDialogSubmit(provisionOrgAdminAction, () => toast.success(`${label} invited`));
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [username, setUsername] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const close = () => {
+    setOpen(false);
+    setUsername(null);
+  };
+
+  const submit = (formData: FormData) => {
+    setError("");
+    formData.set("role", role);
+    formData.set("orgId", orgId);
+    startTransition(async () => {
+      const result = await provisionOrgAdminAction(formData);
+      if (result.username) setUsername(result.username);
+      else setError(result.error ?? "Something went wrong");
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -303,14 +322,19 @@ export function ProvisionOrgAdminDialog({
         <DialogHeader>
           <DialogTitle>Assign {label}</DialogTitle>
         </DialogHeader>
-        <form
-          action={(formData) => {
-            formData.set("role", role);
-            formData.set("orgId", orgId);
-            submit(formData);
-          }}
-          className="space-y-4"
-        >
+        {username ? (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              An invite email has been sent so they can set their own password. They&apos;ll log in with this
+              username:
+            </p>
+            <p className="rounded-md bg-gray-100 px-3 py-2 font-mono text-sm text-gray-900">{username}</p>
+            <DialogFooter>
+              <Button onClick={close}>Done</Button>
+            </DialogFooter>
+          </div>
+        ) : (
+        <form action={submit} className="space-y-4">
           {error && <p className="text-sm text-destructive">{error}</p>}
           <div>
             <Label htmlFor="fullName">Full Name *</Label>
@@ -322,7 +346,7 @@ export function ProvisionOrgAdminDialog({
           </div>
           <p className="text-sm text-gray-500">An invite email is sent; they set their own password.</p>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
+            <Button type="button" variant="outline" onClick={close} disabled={isPending}>
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
@@ -331,6 +355,7 @@ export function ProvisionOrgAdminDialog({
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -50,7 +50,7 @@ type ProfilesRow = {
   id: string; role: UserRoleEnum; full_name: string; email: string; phone: string | null;
   department_id: string | null; avatar_path: string | null; current_semester_id: string | null;
   is_active: boolean; directorate_id: string | null; jmc_id: string | null; college_id: string | null;
-  created_at: string; updated_at: string;
+  username: string; created_at: string; updated_at: string;
 };
 
 // HED hierarchy: college_types / directorates / jmcs / colleges ------------

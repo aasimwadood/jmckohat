@@ -4,15 +4,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth/session";
 import { provisionStaffSchema } from "@/lib/validations/staff";
 import { logAudit } from "@/lib/actions/audit";
-import type { ActionResult } from "@/lib/actions/auth";
+import { generateUniqueUsername } from "@/lib/utils/username";
+
+export type ProvisionStaffResult = { error: string; username?: undefined } | { error?: undefined; username: string };
 
 /**
  * Creates a staff account (any non-student role). Public self-registration
  * is students-only (see lib/actions/auth.ts registerAction) — every other
  * role is provisioned here, by an admin, using the service-role client.
- * The new user is invited by email and sets their own password.
+ * The new user is invited by email and sets their own password, then logs
+ * in with the username generated below (login is username-based).
  */
-export async function provisionStaffAction(formData: FormData): Promise<ActionResult> {
+export async function provisionStaffAction(formData: FormData): Promise<ProvisionStaffResult> {
   const caller = await requireRole("admin");
 
   const parsed = provisionStaffSchema.safeParse({
@@ -27,11 +30,12 @@ export async function provisionStaffAction(formData: FormData): Promise<ActionRe
   }
 
   const { fullName, email, role, departmentId, phone } = parsed.data;
+  const username = await generateUniqueUsername(fullName);
   const admin = createAdminClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName },
+    data: { full_name: fullName, username },
     redirectTo: `${siteUrl}/auth/callback?next=/update-password`,
   });
 
@@ -56,7 +60,7 @@ export async function provisionStaffAction(formData: FormData): Promise<ActionRe
     return { error: profileError.message };
   }
 
-  await logAudit(caller.id, "provision_staff", "profiles", invited.user.id, { role, email });
+  await logAudit(caller.id, "provision_staff", "profiles", invited.user.id, { role, email, username });
 
-  return {};
+  return { username };
 }

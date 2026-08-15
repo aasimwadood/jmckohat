@@ -17,7 +17,7 @@ export function ProvisionStaffDialog({ departments }: { departments: Department[
   const [role, setRole] = useState("faculty");
   const [departmentId, setDepartmentId] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const onSubmit = (formData: FormData) => {
@@ -26,14 +26,14 @@ export function ProvisionStaffDialog({ departments }: { departments: Department[
     formData.set("departmentId", departmentId);
     startTransition(async () => {
       const result = await provisionStaffAction(formData);
-      if (result?.error) setError(result.error);
-      else setSuccess(true);
+      if (result.username) setUsername(result.username);
+      else setError(result.error ?? "Something went wrong");
     });
   };
 
   const close = () => {
     setOpen(false);
-    setSuccess(false);
+    setUsername(null);
   };
 
   return (
@@ -48,9 +48,13 @@ export function ProvisionStaffDialog({ departments }: { departments: Department[
         <DialogHeader>
           <DialogTitle>Add Staff Account</DialogTitle>
         </DialogHeader>
-        {success ? (
+        {username ? (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">An invite email has been sent so they can set their own password.</p>
+            <p className="text-sm text-gray-600">
+              An invite email has been sent so they can set their own password. They&apos;ll log in with this
+              username:
+            </p>
+            <p className="rounded-md bg-gray-100 px-3 py-2 font-mono text-sm text-gray-900">{username}</p>
             <DialogFooter>
               <Button onClick={close}>Done</Button>
             </DialogFooter>

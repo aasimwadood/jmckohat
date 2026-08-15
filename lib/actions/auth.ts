@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   loginSchema,
   registerSchema,
@@ -17,18 +18,37 @@ export async function loginAction(
   formData: FormData,
 ): Promise<ActionResult> {
   const parsed = loginSchema.safeParse({
-    email: formData.get("email"),
+    username: formData.get("username"),
     password: formData.get("password"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
+  // Login is username-based, but Supabase Auth itself is still email-based
+  // underneath — resolve username -> email first, server-side only, via
+  // the admin client (the caller has no session yet, so this can't go
+  // through the RLS-respecting client). Never expose this lookup to the
+  // browser directly, or it becomes a username enumeration endpoint.
+  const admin = createAdminClient();
+  const { data: accountLookup } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("username", parsed.data.username.toLowerCase())
+    .maybeSingle();
+
+  if (!accountLookup) {
+    return { error: "Invalid username or password" };
+  }
+
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: accountLookup.email,
+    password: parsed.data.password,
+  });
 
   if (error) {
-    return { error: "Invalid email or password" };
+    return { error: "Invalid username or password" };
   }
 
   const { data: profile } = await supabase
@@ -56,6 +76,7 @@ export async function loginAction(
 export async function registerAction(formData: FormData): Promise<ActionResult> {
   const parsed = registerSchema.safeParse({
     fullName: formData.get("fullName"),
+    username: formData.get("username"),
     email: formData.get("email"),
     phone: formData.get("phone"),
     departmentId: formData.get("departmentId"),
@@ -64,6 +85,13 @@ export async function registerAction(formData: FormData): Promise<ActionResult> 
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const username = parsed.data.username.toLowerCase();
+  const admin = createAdminClient();
+  const { data: existing } = await admin.from("profiles").select("id").eq("username", username).maybeSingle();
+  if (existing) {
+    return { error: "That username is already taken" };
   }
 
   const supabase = await createClient();
@@ -80,6 +108,7 @@ export async function registerAction(formData: FormData): Promise<ActionResult> 
       emailRedirectTo: `${siteUrl}/auth/callback`,
       data: {
         full_name: parsed.data.fullName,
+        username,
         department_id: parsed.data.departmentId,
         phone: parsed.data.phone || null,
       },

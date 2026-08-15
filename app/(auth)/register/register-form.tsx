@@ -95,6 +95,22 @@ export function RegisterForm({ departments }: { departments: Department[] }) {
             </div>
 
             <div>
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                placeholder="Choose a username — this is what you'll log in with"
+                disabled={isPending}
+                {...register("username")}
+              />
+              {errors.username && (
+                <p className="mt-1 text-sm text-destructive">{errors.username.message}</p>
+              )}
+            </div>
+
+            <div>
               <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"

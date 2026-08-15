@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { provisionOrgAdminSchema } from "@/lib/validations/org";
 import { logAudit } from "@/lib/actions/audit";
-import type { ActionResult } from "@/lib/actions/auth";
+import { generateUniqueUsername } from "@/lib/utils/username";
+import type { ProvisionStaffResult } from "@/lib/actions/provision-staff";
 
 /**
  * Provisions a directorate_admin/jmc_admin/college_admin account. Unlike
@@ -21,7 +22,7 @@ import type { ActionResult } from "@/lib/actions/auth";
  *   - jmc_admin may assign college_admin only within their own JMC
  *     (spec §7: "Manage college administrators").
  */
-export async function provisionOrgAdminAction(formData: FormData): Promise<ActionResult> {
+export async function provisionOrgAdminAction(formData: FormData): Promise<ProvisionStaffResult> {
   const caller = await requireRole("hed_admin", "directorate_admin", "jmc_admin");
 
   const parsed = provisionOrgAdminSchema.safeParse({
@@ -66,11 +67,12 @@ export async function provisionOrgAdminAction(formData: FormData): Promise<Actio
     }
   }
 
+  const username = await generateUniqueUsername(fullName);
   const admin = createAdminClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName },
+    data: { full_name: fullName, username },
     redirectTo: `${siteUrl}/auth/callback?next=/update-password`,
   });
   if (inviteError || !invited.user) return { error: inviteError?.message ?? "Could not invite user" };
@@ -92,7 +94,7 @@ export async function provisionOrgAdminAction(formData: FormData): Promise<Actio
     await admin.from("colleges").update({ college_admin_profile_id: invited.user.id }).eq("id", orgId);
   }
 
-  await logAudit(caller.id, "provision_org_admin", "profiles", invited.user.id, { role, orgId, email });
+  await logAudit(caller.id, "provision_org_admin", "profiles", invited.user.id, { role, orgId, email, username });
   revalidatePath("/dashboard", "layout");
-  return {};
+  return { username };
 }

@@ -25,7 +25,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   const onSubmit = (values: LoginInput) => {
     setServerError("");
     const formData = new FormData();
-    formData.set("email", values.email);
+    formData.set("username", values.username);
     formData.set("password", values.password);
 
     startTransition(async () => {
@@ -52,16 +52,18 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
             )}
 
             <div>
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
+                id="username"
+                type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                placeholder="Enter your username"
                 disabled={isPending}
-                {...register("email")}
+                {...register("username")}
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>
+              {errors.username && (
+                <p className="mt-1 text-sm text-destructive">{errors.username.message}</p>
               )}
             </div>
 
