@@ -11,9 +11,11 @@ import { saveSiteSettingAction } from "@/lib/actions/site-settings";
 export function SiteSettingsForm({
   fields,
   values,
+  collegeId,
 }: {
   fields: { key: string; label: string }[];
   values: Record<string, string>;
+  collegeId: string;
 }) {
   const [state, setState] = useState(values);
   const [isPending, startTransition] = useTransition();
@@ -21,7 +23,7 @@ export function SiteSettingsForm({
   const saveAll = () => {
     startTransition(async () => {
       for (const field of fields) {
-        const result = await saveSiteSettingAction(field.key, state[field.key] ?? "");
+        const result = await saveSiteSettingAction(field.key, state[field.key] ?? "", collegeId);
         if (result?.error) {
           toast.error(`${field.label}: ${result.error}`);
           return;

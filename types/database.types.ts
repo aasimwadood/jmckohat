@@ -82,6 +82,11 @@ type CollegesRow = {
   district: string | null; division: string | null; address: string | null;
   contact_number: string | null; email: string | null; college_admin_profile_id: string | null;
   status: OrgStatusEnum; created_at: string; updated_at: string;
+  // Multi-college public site (0042): branding/identity for that college's
+  // own public pages under /college/[slug].
+  slug: string | null; logo_path: string | null; favicon_path: string | null; banner_path: string | null;
+  principal_name: string | null; principal_photo_path: string | null; about_content: string | null;
+  facebook_url: string | null; twitter_url: string | null; youtube_url: string | null; theme_color: string | null;
 };
 type ProgramsRow = {
   id: string; department_id: string; name: string; degree_level: string; created_at: string;
@@ -251,86 +256,90 @@ type MessagesRow = {
   body: string; created_at: string;
 };
 
-type SiteSettingsRow = { key: string; value: string; updated_at: string };
+// Multi-college public site (0042/0043): every table below carries a
+// college_id — nullable everywhere except site_settings (see its own
+// comment), where NULL means "global/shown on every college's site" per
+// the plan in docs/MIGRATION_PLAN.md.
+type SiteSettingsRow = { college_id: string; key: string; value: string; updated_at: string };
 type LeadershipRow = {
-  id: string; title: string | null; first_name: string | null; last_name: string | null;
+  id: string; college_id: string | null; title: string | null; first_name: string | null; last_name: string | null;
   position: string | null; department: string | null; message: string | null;
   photo_path: string | null; display_order: number;
 };
 type PortalHighlightsRow = {
-  id: string; title: string; description: string | null; display_order: number;
+  id: string; college_id: string | null; title: string; description: string | null; display_order: number;
 };
 type PortalNewsRow = {
-  id: string; title: string; body: string | null; category: string | null; published_at: string;
+  id: string; college_id: string | null; title: string; body: string | null; category: string | null; published_at: string;
 };
-type PortalStatsRow = { id: string; label: string; value: string; display_order: number };
+type PortalStatsRow = { id: string; college_id: string | null; label: string; value: string; display_order: number };
 type PortalFeaturesRow = {
-  id: string; title: string; description: string | null; icon: string | null;
+  id: string; college_id: string | null; title: string; description: string | null; icon: string | null;
   gradient: string | null; stat: string | null; stat_label: string | null; display_order: number;
 };
 type InstitutionFacultiesRow = {
-  id: string; name: string; dean: string | null; description: string | null;
+  id: string; college_id: string | null; name: string; dean: string | null; description: string | null;
   full_detail: string | null; image_path: string | null; color: string | null;
   programs: string[]; display_order: number;
 };
 type PortalQuickStatsRow = {
-  id: string; icon: string | null; label: string; value: string; color_class: string | null;
+  id: string; college_id: string | null; icon: string | null; label: string; value: string; color_class: string | null;
   display_order: number;
 };
-type FacultyCategoriesRow = { id: string; name: string; display_order: number };
+type FacultyCategoriesRow = { id: string; college_id: string | null; name: string; display_order: number };
 type FacultyDirectoryRow = {
-  id: string; category_id: string | null; department_id: string | null; name: string;
+  id: string; college_id: string | null; category_id: string | null; department_id: string | null; name: string;
   designation: string | null; qualification: string | null; photo_path: string | null;
   specialization: string | null; email: string | null; phone: string | null;
   publications_count: number; display_order: number;
 };
-type DownloadCategoriesRow = { id: string; name: string; display_order: number };
+type DownloadCategoriesRow = { id: string; college_id: string | null; name: string; display_order: number };
 type DownloadsRow = {
-  id: string; category_id: string | null; title: string; file_path: string;
+  id: string; college_id: string | null; category_id: string | null; title: string; file_path: string;
   file_size_bytes: number | null; uploaded_at: string;
 };
-type ProgramCategoriesRow = { id: string; name: string; display_order: number };
+type ProgramCategoriesRow = { id: string; college_id: string | null; name: string; display_order: number };
 type ProgramDetailsRow = {
-  id: string; category_id: string | null; department_id: string | null; name: string;
+  id: string; college_id: string | null; category_id: string | null; department_id: string | null; name: string;
   duration: string | null; description: string | null; credit_hours: number | null;
   eligibility: string | null; specializations: string | null; display_order: number;
 };
 type ProgramRequirementsRow = {
-  id: string; category_id: string | null; requirement: string; requirement_type: string;
+  id: string; college_id: string | null; category_id: string | null; requirement: string; requirement_type: string;
   display_order: number;
 };
 type ProgramFeesRow = {
-  id: string; category_id: string | null; program_name: string; admission_fee: number;
+  id: string; college_id: string | null; category_id: string | null; program_name: string; admission_fee: number;
   tuition_fee: number; total_fee: number; display_order: number;
 };
-type AdditionalFeeCategoriesRow = { id: string; name: string; display_order: number };
+type AdditionalFeeCategoriesRow = { id: string; college_id: string | null; name: string; display_order: number };
 type AdditionalFeeItemsRow = {
-  id: string; category_id: string | null; item_name: string; amount: number; display_order: number;
+  id: string; college_id: string | null; category_id: string | null; item_name: string; amount: number; display_order: number;
 };
 type ApplyStepsRow = {
-  id: string; step_number: number; title: string; description: string | null;
+  id: string; college_id: string | null; step_number: number; title: string; description: string | null;
   icon: string | null; color: string | null;
 };
 type ImportantDatesRow = {
-  id: string; event: string; start_date: string | null; end_date: string | null; display_order: number;
+  id: string; college_id: string | null; event: string; start_date: string | null; end_date: string | null; display_order: number;
 };
 type FooterInfoRow = {
-  id: string; location: string | null; phone_no: string | null; email: string | null;
+  id: string; college_id: string | null; location: string | null; phone_no: string | null; email: string | null;
   copyright: string | null;
 };
 type ContactInfoRow = {
-  id: string; icon: string | null; title: string | null; description: string | null;
+  id: string; college_id: string | null; icon: string | null; title: string | null; description: string | null;
   details: string | null; display_order: number;
 };
 type OfficeHoursRow = {
-  id: string; day: string | null; opening_time: string | null; closing_time: string | null;
+  id: string; college_id: string | null; day: string | null; opening_time: string | null; closing_time: string | null;
   status: string; display_order: number;
 };
 type DepartmentContactsRow = {
-  id: string; department_id: string | null; phone: string | null; email: string | null;
+  id: string; college_id: string | null; department_id: string | null; phone: string | null; email: string | null;
 };
 type CampusLocationsRow = {
-  id: string; name: string; address: string | null; map_url: string | null;
+  id: string; college_id: string | null; name: string; address: string | null; map_url: string | null;
   phone: string | null; email: string | null;
 };
 
@@ -423,7 +432,7 @@ export type Database = {
       college_types: Table<CollegeTypesRow, "id" | "created_at">;
       directorates: Table<DirectoratesRow, "id" | "status" | "created_at" | "updated_at">;
       jmcs: Table<JmcsRow, "id" | "district" | "division" | "address" | "contact_number" | "email" | "jmc_admin_profile_id" | "status" | "created_at" | "updated_at">;
-      colleges: Table<CollegesRow, "id" | "district" | "division" | "address" | "contact_number" | "email" | "college_admin_profile_id" | "status" | "created_at" | "updated_at">;
+      colleges: Table<CollegesRow, "id" | "district" | "division" | "address" | "contact_number" | "email" | "college_admin_profile_id" | "status" | "created_at" | "updated_at" | "slug" | "logo_path" | "favicon_path" | "banner_path" | "principal_name" | "principal_photo_path" | "about_content" | "facebook_url" | "twitter_url" | "youtube_url" | "theme_color">;
       academic_sessions: Table<AcademicSessionsRow, "id" | "is_active" | "created_at">;
       semesters: Table<SemestersRow, "id" | "is_current" | "created_at">;
 
@@ -469,30 +478,30 @@ export type Database = {
       messages: Table<MessagesRow, "id" | "subject" | "created_at">;
 
       site_settings: Table<SiteSettingsRow, "value" | "updated_at">;
-      leadership: Table<LeadershipRow, "id" | "title" | "first_name" | "last_name" | "position" | "department" | "message" | "photo_path" | "display_order">;
-      portal_highlights: Table<PortalHighlightsRow, "id" | "description" | "display_order">;
-      portal_news: Table<PortalNewsRow, "id" | "body" | "category" | "published_at">;
-      portal_stats: Table<PortalStatsRow, "id" | "display_order">;
-      portal_features: Table<PortalFeaturesRow, "id" | "description" | "icon" | "gradient" | "stat" | "stat_label" | "display_order">;
-      institution_faculties: Table<InstitutionFacultiesRow, "id" | "dean" | "description" | "full_detail" | "image_path" | "color" | "programs" | "display_order">;
-      portal_quick_stats: Table<PortalQuickStatsRow, "id" | "icon" | "color_class" | "display_order">;
-      faculty_categories: Table<FacultyCategoriesRow, "id" | "display_order">;
-      faculty_directory: Table<FacultyDirectoryRow, "id" | "category_id" | "department_id" | "designation" | "qualification" | "photo_path" | "specialization" | "email" | "phone" | "publications_count" | "display_order">;
-      download_categories: Table<DownloadCategoriesRow, "id" | "display_order">;
-      downloads: Table<DownloadsRow, "id" | "category_id" | "file_size_bytes" | "uploaded_at">;
-      program_categories: Table<ProgramCategoriesRow, "id" | "display_order">;
-      program_details: Table<ProgramDetailsRow, "id" | "category_id" | "department_id" | "duration" | "description" | "credit_hours" | "eligibility" | "specializations" | "display_order">;
-      program_requirements: Table<ProgramRequirementsRow, "id" | "category_id" | "requirement_type" | "display_order">;
-      program_fees: Table<ProgramFeesRow, "id" | "category_id" | "admission_fee" | "tuition_fee" | "total_fee" | "display_order">;
-      additional_fee_categories: Table<AdditionalFeeCategoriesRow, "id" | "display_order">;
-      additional_fee_items: Table<AdditionalFeeItemsRow, "id" | "category_id" | "display_order">;
-      apply_steps: Table<ApplyStepsRow, "id" | "description" | "icon" | "color">;
-      important_dates: Table<ImportantDatesRow, "id" | "start_date" | "end_date" | "display_order">;
-      footer_info: Table<FooterInfoRow, "id" | "location" | "phone_no" | "email" | "copyright">;
-      contact_info: Table<ContactInfoRow, "id" | "icon" | "title" | "description" | "details" | "display_order">;
-      office_hours: Table<OfficeHoursRow, "id" | "day" | "opening_time" | "closing_time" | "status" | "display_order">;
-      department_contacts: Table<DepartmentContactsRow, "id" | "department_id" | "phone" | "email">;
-      campus_locations: Table<CampusLocationsRow, "id" | "address" | "map_url" | "phone" | "email">;
+      leadership: Table<LeadershipRow, "id" | "college_id" | "title" | "first_name" | "last_name" | "position" | "department" | "message" | "photo_path" | "display_order">;
+      portal_highlights: Table<PortalHighlightsRow, "id" | "college_id" | "description" | "display_order">;
+      portal_news: Table<PortalNewsRow, "id" | "college_id" | "body" | "category" | "published_at">;
+      portal_stats: Table<PortalStatsRow, "id" | "college_id" | "display_order">;
+      portal_features: Table<PortalFeaturesRow, "id" | "college_id" | "description" | "icon" | "gradient" | "stat" | "stat_label" | "display_order">;
+      institution_faculties: Table<InstitutionFacultiesRow, "id" | "college_id" | "dean" | "description" | "full_detail" | "image_path" | "color" | "programs" | "display_order">;
+      portal_quick_stats: Table<PortalQuickStatsRow, "id" | "college_id" | "icon" | "color_class" | "display_order">;
+      faculty_categories: Table<FacultyCategoriesRow, "id" | "college_id" | "display_order">;
+      faculty_directory: Table<FacultyDirectoryRow, "id" | "college_id" | "category_id" | "department_id" | "designation" | "qualification" | "photo_path" | "specialization" | "email" | "phone" | "publications_count" | "display_order">;
+      download_categories: Table<DownloadCategoriesRow, "id" | "college_id" | "display_order">;
+      downloads: Table<DownloadsRow, "id" | "college_id" | "category_id" | "file_size_bytes" | "uploaded_at">;
+      program_categories: Table<ProgramCategoriesRow, "id" | "college_id" | "display_order">;
+      program_details: Table<ProgramDetailsRow, "id" | "college_id" | "category_id" | "department_id" | "duration" | "description" | "credit_hours" | "eligibility" | "specializations" | "display_order">;
+      program_requirements: Table<ProgramRequirementsRow, "id" | "college_id" | "category_id" | "requirement_type" | "display_order">;
+      program_fees: Table<ProgramFeesRow, "id" | "college_id" | "category_id" | "admission_fee" | "tuition_fee" | "total_fee" | "display_order">;
+      additional_fee_categories: Table<AdditionalFeeCategoriesRow, "id" | "college_id" | "display_order">;
+      additional_fee_items: Table<AdditionalFeeItemsRow, "id" | "college_id" | "category_id" | "display_order">;
+      apply_steps: Table<ApplyStepsRow, "id" | "college_id" | "description" | "icon" | "color">;
+      important_dates: Table<ImportantDatesRow, "id" | "college_id" | "start_date" | "end_date" | "display_order">;
+      footer_info: Table<FooterInfoRow, "id" | "college_id" | "location" | "phone_no" | "email" | "copyright">;
+      contact_info: Table<ContactInfoRow, "id" | "college_id" | "icon" | "title" | "description" | "details" | "display_order">;
+      office_hours: Table<OfficeHoursRow, "id" | "college_id" | "day" | "opening_time" | "closing_time" | "status" | "display_order">;
+      department_contacts: Table<DepartmentContactsRow, "id" | "college_id" | "department_id" | "phone" | "email">;
+      campus_locations: Table<CampusLocationsRow, "id" | "college_id" | "address" | "map_url" | "phone" | "email">;
 
       applicant_profiles: Table<ApplicantProfilesRow, "father_name" | "cnic" | "dob" | "gender" | "phone" | "address" | "domicile" | "created_at" | "updated_at">;
       recruitment_advertisements: Table<RecruitmentAdvertisementsRow, "id" | "ad_number" | "ad_date" | "interview_date" | "location" | "description" | "instructions" | "status" | "created_at" | "updated_at">;

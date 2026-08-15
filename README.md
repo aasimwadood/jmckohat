@@ -1,6 +1,6 @@
 # GPGC Kohat
 
-A university management system for Government Postgraduate College Kohat — public site, admissions, academics, recruitment/appointment workflows, and 8 role-specific dashboards (Student, Faculty, Department/HoD, Admin, Controller of Examinations, Coordinator, Principal, Administration).
+A university management system originally built for Government Postgraduate College Kohat, now a multi-college platform — a public site per college, admissions, academics, recruitment/appointment workflows, and 8 role-specific dashboards (Student, Faculty, Department/HoD, Admin, Controller of Examinations, Coordinator, Principal, Administration).
 
 Built with **Next.js 15 (App Router)**, **TypeScript**, **Supabase** (Postgres + Auth + Storage + Realtime), **shadcn/ui + Tailwind CSS v4**, **Zod**, and **React Hook Form**.
 
@@ -65,7 +65,21 @@ Job applicants are **not** students or staff — they get their own `applicant_p
 
 Merit scoring is a configurable per-position criteria table, not a hard-coded formula. Every application-status transition (submit, scrutinize, shortlist, interview marks, final selection, appointment order) goes through a `SECURITY DEFINER` RPC — same pattern as `admit_student()`/`approve_admission_fee()` — with no blanket UPDATE policy on the tables those functions own.
 
-**Not yet applied or live-verified** — see `docs/MIGRATION_PLAN.md` §11 for the full design writeup, a real bug found while building it (a malformed hand-authored type broke row-typing app-wide, not just for the new tables), and the exact next steps before this ships.
+**Migrations are applied to the live project and the full pipeline has been live-verified end-to-end via real RLS/RPC calls; a real-browser click-through is still outstanding.** See `docs/MIGRATION_PLAN.md` §11 for the full design writeup, two real bugs found and fixed along the way (a malformed hand-authored type that broke row-typing app-wide, and a critical NULL-role-check gap that let an applicant bypass every staff-only RPC's privilege check), and the exact next steps before this ships.
+
+## Multi-College Public Website
+
+Each college gets its own public site at `/college/[slug]` (e.g. `/college/gpgc-kohat`) — one set of page components (home, about, departments, programs, faculty, downloads, fee-structure, how-to-apply, requirements, contact), driven entirely by data, not per-college frontend code. `/colleges` lists every active college. The original bare URLs (`/about`, `/departments`, etc.) are now redirects to GPGC Kohat's own canonical pages, so existing links keep working.
+
+Content is global-vs-college-specific via a nullable `college_id` on every public-content table: `NULL` shows on every college's site (spec's "Global HED/GMC Content"), a set value shows only on that one college. `colleges` itself gained branding columns (`slug`, `logo_path`, `principal_name`, `about_content`, `theme_color`, etc.) — `Header`/`Footer` now render from these instead of hardcoded GPGC Kohat strings. Admin write access follows the same pattern as Recruitment: `college_admin` can manage their own college's content, `admin`/org-admin roles retain their existing access.
+
+**Migrations are applied and live-verified** (including a critical gap found this way, not by inspection: the `colleges` table itself had no public read policy at all from the earlier HED-hierarchy phase, which would have 404'd every real visitor to every college page — see `docs/MIGRATION_PLAN.md` §12 for the fix and the full two-way content-isolation test between a real and a throwaway second college). A real-browser click-through is still outstanding.
+
+## Workflow Audit
+
+A full functional audit of every existing workflow (spec Part 3) — not just "does the page render," but frontend → server action → RPC/RLS → actual dashboard query traced end-to-end for Admissions, FYP, Promotions/Fees, the academic core, and every operational/support table. **Report-first, no fixes applied**, per the same decision that shaped this phase from the start. Full findings: [`docs/WORKFLOW_AUDIT.md`](docs/WORKFLOW_AUDIT.md).
+
+Headline results: the cross-college RLS gap this session already found and fixed twice (Recruitment, the public site) turns out to be systemic across admissions, promotions/fees, and the entire academic core — confirmed exploitable via real dashboard queries, not just theoretical RLS. `enrollments` is never written by any code path, which makes results/attendance/assignments/materials non-operational despite being otherwise correctly built. FYP has a real security gap (a student could self-approve as their own supervisor) and its lifecycle is stuck at the first stage. Several features (notifications, transcript/ticket/scholarship creation) are fully built on the resolution side with no way to ever trigger them. The Role Management admin screen has zero actual runtime effect.
 
 ### Regenerating database types
 
@@ -110,7 +124,9 @@ Deploys like any Next.js 15 app — [Vercel](https://vercel.com) is the path of 
 
 ```
 app/
-  (public)/        marketing site — home, about, departments, programs, faculty, admissions info, contact, downloads, recruitment listings + applicant portal
+  college/[slug]/   the real multi-college public site — home, about, departments, programs, faculty, downloads, fee-structure, how-to-apply, requirements, contact, all scoped by the resolved college
+  colleges/          the "select a college" directory page
+  (public)/         legacy bare paths (/about, /departments, etc.) — now one-line redirects into college/gpgc-kohat/*, plus recruitment listings + applicant portal (not yet nested per-college)
   (auth)/           login, register (students only), forgot/update password
   dashboard/        one folder per role, each with its own layout.tsx (role guard + nav) and sub-routes; dashboard/recruitment/ is the one exception — shared across coordinator/admin/principal/college_admin rather than one-per-role
   auth/callback/    Supabase email-confirmation / password-recovery redirect handler
@@ -168,7 +184,9 @@ There's no automated test suite (none existed in the legacy app either, and none
 - [ ] Email deliverability for signup confirmation, password reset, and staff-invite emails in your actual Supabase email configuration.
 - [ ] File upload size/type limits against real files (PDFs, videos for FYP demos, etc.) at the sizes your users will actually use.
 - [ ] Concurrent-user behavior on the atomic operations (admission registration numbers, promotion course registration) — logic is written to be race-safe (row locks in the RPCs) but hasn't been load-tested.
-- [ ] **The entire Recruitment/Appointment System (migrations `0037`–`0040`)** — built, `npm run build`/`npm run lint` clean, but not yet applied to any Postgres instance and therefore not RLS/RPC-verified live the way every other phase in this list was. Apply the migrations, then walk the full pipeline once (advertise → apply as a test applicant → scrutinize → shortlist → interview → select → issue appointment order) before trusting any of it in production. See `docs/MIGRATION_PLAN.md` §11.
+- [ ] **The entire Recruitment/Appointment System (migrations `0037`–`0041`)** — built, `npm run build`/`npm run lint` clean, migrations applied to the live project, and the full pipeline (advertise → apply → scrutinize → shortlist → interview → select → issue appointment order) has been live-verified end-to-end with real ephemeral test accounts over the actual REST/RPC endpoints — including a critical bug found this way (`0041`: a NULL-role-check gap that let a signed-in applicant bypass every staff-only RPC's privilege check) and fixed before anything else proceeded. What's still outstanding is a real browser click-through of the actual UI (forms/pages rendering and wiring up correctly) — the RLS/RPC layer itself has been directly verified, which is a stronger security check but not a substitute for a UI pass. See `docs/MIGRATION_PLAN.md` §11.
+- [ ] **The Multi-College Public Website (migrations `0042`–`0044`)** — built, build/lint clean, migrations applied, and live-verified: a real second college was created with its own scoped content, confirmed isolated in both directions as an anonymous visitor, then deleted; a `college_admin` write test confirmed they can edit their own college's content and are blocked (`403`) from another's. This pass caught a critical gap (`0044`): `colleges` had no public read policy at all before this, which would have 404'd every real visitor to every college page. Still outstanding: a real browser click-through of the new pages. See `docs/MIGRATION_PLAN.md` §12.
+- [ ] **The Workflow Audit findings (`docs/WORKFLOW_AUDIT.md`)** — report-only, nothing fixed yet. The most consequential: legacy roles (`admin`/`principal`/`controller`/`coordinator`/`administration`) are unscoped by college across admissions, promotions/fees, and the entire academic core (confirmed via real dashboard queries); `enrollments` is never written by any code path, so results/attendance/assignments/materials rosters are always empty; a real FYP self-approval security gap; several features (notifications, transcripts, tickets, scholarships) have no creation path at all. See the linked doc for the full prioritized list before deciding what to fix.
 
 ## Remaining assumptions and TODOs
 
@@ -179,5 +197,5 @@ There's no automated test suite (none existed in the legacy app either, and none
 - **"System Logs"** is admin-only by design (RLS). `logAudit()` now covers staff provisioning/deactivation plus the admissions and promotions money/status-transition RPCs (`admit_student`, `approve_admission_fee`, `cancel_admission`, `upload_admission_document`, `verify_promotion_fee`); extending it to more Server Actions is straightforward if you want even broader coverage.
 - **Course File Report** and **Curriculum Management** were fully mock/hardcoded in the legacy app with no real spec behind their detailed structure; both were rebuilt against real data/tables rather than reverse-engineering fake content.
 - **`legacy-vite-src/`** is kept in the repo for reference per your request — remove it (and the other `*.reference` config leftovers at the repo root) once you're done comparing against it.
-- **Recruitment/Appointment System migrations are unapplied.** `0037`–`0040` are written and build-clean but have never been run against a real Postgres instance (no Supabase CLI/Docker/psql in this environment). Run `npx supabase db push`, then live-verify per the testing checklist above before relying on any of it.
-- **Multi-college public website (spec Part 1) and the full existing-workflow audit (spec Part 3) are not started.** Both were explicitly deferred in favor of building Recruitment (Part 2) first, per your own prioritization — see `docs/MIGRATION_PLAN.md` §11 for the full three-part spec and why only one part was attempted at a time.
+- **Recruitment (spec Part 2) and the Multi-College Public Website (spec Part 1) are both built, migrated, and live-verified end-to-end** (`0037`–`0044`) — including two critical security/access bugs found and fixed during that verification (§11.5: a NULL-role-check gap that let an applicant bypass staff-only RPCs; §12.2: `colleges` had no public read policy at all, which would have 404'd every real visitor) — **but neither is yet click-through-verified in a real browser.** See `docs/MIGRATION_PLAN.md` §11–§12 for both full write-ups.
+- **The full existing-workflow audit (spec Part 3) is done, report-only** — see `docs/WORKFLOW_AUDIT.md` for the complete findings and `docs/MIGRATION_PLAN.md` §13 for how it was conducted. Nothing has been fixed yet; several findings are critical (a systemic cross-college RLS gap, `enrollments` never being written by any code path, a real FYP security gap) and worth reading before deciding what to prioritize.

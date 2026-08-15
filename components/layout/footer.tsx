@@ -9,9 +9,18 @@ const DEFAULT_FOOTER = {
   copyright: "GPGC Kohat. All rights reserved.",
 };
 
-export async function Footer() {
+export async function Footer({
+  basePath = "",
+  collegeId,
+  collegeName,
+}: {
+  basePath?: string;
+  collegeId?: string | null;
+  collegeName?: string;
+} = {}) {
   const supabase = await createClient();
-  const { data } = await supabase.from("footer_info").select("location, phone_no, email, copyright").limit(1);
+  const query = supabase.from("footer_info").select("location, phone_no, email, copyright").limit(1);
+  const { data } = collegeId ? await query.eq("college_id", collegeId) : await query;
   const footer = data?.[0] ?? DEFAULT_FOOTER;
 
   return (
@@ -21,7 +30,7 @@ export async function Footer() {
           <div>
             <h3 className="mb-4 text-lg font-semibold text-white">About Us</h3>
             <p className="text-sm leading-relaxed">
-              Leading educational institution committed to excellence in academics and character development.
+              {collegeName ?? "This institution"} is committed to excellence in academics and character development.
             </p>
           </div>
 
@@ -29,22 +38,22 @@ export async function Footer() {
             <h3 className="mb-4 text-lg font-semibold text-white">Quick Links</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/" className="transition-colors duration-200 hover:text-white">
+                <Link href={basePath || "/"} className="transition-colors duration-200 hover:text-white">
                   Home
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="transition-colors duration-200 hover:text-white">
+                <Link href={`${basePath}/about`} className="transition-colors duration-200 hover:text-white">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/downloads" className="transition-colors duration-200 hover:text-white">
+                <Link href={`${basePath}/downloads`} className="transition-colors duration-200 hover:text-white">
                   Downloads
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="transition-colors duration-200 hover:text-white">
+                <Link href={`${basePath}/contact`} className="transition-colors duration-200 hover:text-white">
                   Contact Us
                 </Link>
               </li>
@@ -55,23 +64,28 @@ export async function Footer() {
             <h3 className="mb-4 text-lg font-semibold text-white">Academics</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/departments" className="transition-colors duration-200 hover:text-white">
+                <Link href={`${basePath}/departments`} className="transition-colors duration-200 hover:text-white">
                   Departments
                 </Link>
               </li>
               <li>
-                <Link href="/programs" className="transition-colors duration-200 hover:text-white">
+                <Link href={`${basePath}/programs`} className="transition-colors duration-200 hover:text-white">
                   Programs
                 </Link>
               </li>
               <li>
-                <Link href="/faculty" className="transition-colors duration-200 hover:text-white">
+                <Link href={`${basePath}/faculty`} className="transition-colors duration-200 hover:text-white">
                   Faculty
                 </Link>
               </li>
               <li>
-                <Link href="/fee-structure" className="transition-colors duration-200 hover:text-white">
+                <Link href={`${basePath}/fee-structure`} className="transition-colors duration-200 hover:text-white">
                   Fee Structure
+                </Link>
+              </li>
+              <li>
+                <Link href="/colleges" className="transition-colors duration-200 hover:text-white">
+                  All Colleges
                 </Link>
               </li>
             </ul>

@@ -224,6 +224,21 @@ export function CreateCollegeDialog({
             <Input id="code" name="code" disabled={isPending} required />
           </div>
           <div>
+            <Label htmlFor="slug">Public URL Slug *</Label>
+            <Input
+              id="slug"
+              name="slug"
+              placeholder="e.g. gdc-pirdiye-kohat"
+              pattern="[a-z0-9-]+"
+              disabled={isPending}
+              required
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Lowercase letters, numbers, and hyphens only — this becomes the college&apos;s public site address
+              (/college/{"{slug}"}).
+            </p>
+          </div>
+          <div>
             <Label htmlFor="district">District</Label>
             <Input id="district" name="district" disabled={isPending} />
           </div>

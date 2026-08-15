@@ -21,6 +21,15 @@ export const createCollegeSchema = z.object({
   collegeTypeId: z.string().uuid(),
   name: z.string().trim().min(2, "Enter a name").max(200),
   code: z.string().trim().min(2, "Enter a code").max(30),
+  // Multi-college public site (0042): the public URL slug — required at
+  // creation, since a college with no slug can never resolve a
+  // /college/[slug] page at all (see lib/services/colleges.ts).
+  slug: z
+    .string()
+    .trim()
+    .min(2, "Enter a URL slug")
+    .max(80)
+    .regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, and hyphens only"),
   district: z.string().trim().max(100).optional().or(z.literal("")),
   division: z.string().trim().max(100).optional().or(z.literal("")),
   address: z.string().trim().max(300).optional().or(z.literal("")),

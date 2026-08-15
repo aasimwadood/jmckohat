@@ -8,8 +8,12 @@ import { logoutAction } from "@/lib/actions/auth";
 
 type SearchResult = { title: string; path: string };
 
-const SEARCHABLE_PAGES: { title: string; path: string; keywords: string[] }[] = [
-  { title: "Home", path: "/", keywords: ["home", "main", "index"] },
+// Multi-college public site: every in-college link below is relative to
+// `basePath` (e.g. "/college/gpgc-kohat") so navigating stays within the
+// current college's site rather than jumping back to a hardcoded one —
+// see docs/MIGRATION_PLAN.md §11's Part 1 plan.
+const IN_COLLEGE_PAGES: { title: string; path: string; keywords: string[] }[] = [
+  { title: "Home", path: "", keywords: ["home", "main", "index"] },
   { title: "About Us", path: "/about", keywords: ["about", "information", "history"] },
   {
     title: "Departments",
@@ -23,15 +27,38 @@ const SEARCHABLE_PAGES: { title: string; path: string; keywords: string[] }[] = 
   { title: "Fee Structure", path: "/fee-structure", keywords: ["fee", "fees", "cost", "tuition", "charges"] },
   { title: "Contact Us", path: "/contact", keywords: ["contact", "email", "phone", "address"] },
   { title: "Downloads", path: "/downloads", keywords: ["downloads", "forms", "documents", "prospectus"] },
+];
+// Site-wide, not college-scoped.
+const GLOBAL_PAGES: { title: string; path: string; keywords: string[] }[] = [
+  { title: "All Colleges", path: "/colleges", keywords: ["colleges", "campuses", "select"] },
   { title: "Login", path: "/login", keywords: ["login", "signin", "portal"] },
   { title: "Register", path: "/register", keywords: ["register", "signup", "create account"] },
 ];
 
-export function Header({ isAuthenticated }: { isAuthenticated: boolean }) {
+export function Header({
+  isAuthenticated,
+  basePath = "",
+  collegeName = "Government Postgraduate",
+  collegeShortName = "College Kohat",
+  collegeAbbreviation = "GPC Kohat",
+  logoPath = "/images/logo.png",
+}: {
+  isAuthenticated: boolean;
+  basePath?: string;
+  collegeName?: string;
+  collegeShortName?: string;
+  collegeAbbreviation?: string;
+  logoPath?: string;
+}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+
+  const searchablePages = [
+    ...IN_COLLEGE_PAGES.map((p) => ({ ...p, path: `${basePath}${p.path}` || "/" })),
+    ...GLOBAL_PAGES,
+  ];
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -40,7 +67,7 @@ export function Header({ isAuthenticated }: { isAuthenticated: boolean }) {
       return;
     }
     const searchLower = query.toLowerCase();
-    const results = SEARCHABLE_PAGES.filter(
+    const results = searchablePages.filter(
       (page) =>
         page.title.toLowerCase().includes(searchLower) ||
         page.keywords.some((keyword) => keyword.includes(searchLower)),
@@ -53,22 +80,22 @@ export function Header({ isAuthenticated }: { isAuthenticated: boolean }) {
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border-b border-slate-700">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <Link href="/" className="group flex items-center gap-4">
+            <Link href={basePath || "/"} className="group flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center transition-all duration-300 group-hover:scale-105">
-                <Image src="/images/logo.png" alt="GPGC Kohat Logo" width={48} height={48} className="h-full w-full object-contain" />
+                <Image src={logoPath} alt={`${collegeName} ${collegeShortName} Logo`} width={48} height={48} className="h-full w-full object-contain" />
               </div>
               <div className="hidden lg:flex flex-col">
-                <span className="text-sm font-light tracking-wider text-gray-300">Government Postgraduate</span>
-                <span className="text-lg leading-tight tracking-wide">College Kohat</span>
+                <span className="text-sm font-light tracking-wider text-gray-300">{collegeName}</span>
+                <span className="text-lg leading-tight tracking-wide">{collegeShortName}</span>
               </div>
               <div className="lg:hidden">
-                <span className="text-lg tracking-wide">GPC Kohat</span>
+                <span className="text-lg tracking-wide">{collegeAbbreviation}</span>
               </div>
             </Link>
 
             <nav className="hidden lg:flex items-center gap-1">
-              <NavLink href="/">Home</NavLink>
-              <NavLink href="/about">About</NavLink>
+              <NavLink href={basePath || "/"}>Home</NavLink>
+              <NavLink href={`${basePath}/about`}>About</NavLink>
 
               <div className="group relative">
                 <button className="flex items-center gap-1 px-4 py-2 text-sm transition-colors hover:text-blue-400">
@@ -76,13 +103,13 @@ export function Header({ isAuthenticated }: { isAuthenticated: boolean }) {
                   <ChevronDown className="h-3 w-3" />
                 </button>
                 <div className="invisible absolute top-full left-0 mt-1 w-48 rounded-lg bg-white text-gray-800 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:opacity-100">
-                  <Link href="/departments" className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
+                  <Link href={`${basePath}/departments`} className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
                     Departments
                   </Link>
-                  <Link href="/programs" className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
+                  <Link href={`${basePath}/programs`} className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
                     Programs
                   </Link>
-                  <Link href="/faculty" className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
+                  <Link href={`${basePath}/faculty`} className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
                     Faculty
                   </Link>
                 </div>
@@ -94,20 +121,21 @@ export function Header({ isAuthenticated }: { isAuthenticated: boolean }) {
                   <ChevronDown className="h-3 w-3" />
                 </button>
                 <div className="invisible absolute top-full left-0 mt-1 w-48 rounded-lg bg-white text-gray-800 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:opacity-100">
-                  <Link href="/how-to-apply" className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
+                  <Link href={`${basePath}/how-to-apply`} className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
                     How to Apply
                   </Link>
-                  <Link href="/requirements" className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
+                  <Link href={`${basePath}/requirements`} className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
                     Requirements
                   </Link>
-                  <Link href="/fee-structure" className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
+                  <Link href={`${basePath}/fee-structure`} className="block px-4 py-3 text-sm transition-colors hover:bg-blue-50">
                     Fee Structure
                   </Link>
                 </div>
               </div>
 
-              <NavLink href="/contact">Contact</NavLink>
-              <NavLink href="/downloads">Downloads</NavLink>
+              <NavLink href={`${basePath}/contact`}>Contact</NavLink>
+              <NavLink href={`${basePath}/downloads`}>Downloads</NavLink>
+              <NavLink href="/colleges">All Colleges</NavLink>
 
               {isAuthenticated ? (
                 <form action={logoutAction}>
@@ -194,44 +222,47 @@ export function Header({ isAuthenticated }: { isAuthenticated: boolean }) {
         <div className="animate-in slide-in-from-top border-b border-slate-700 bg-slate-900 duration-200 lg:hidden">
           <nav className="mx-auto max-w-7xl px-4 py-4">
             <div className="flex flex-col gap-2">
-              <MobileNavLink href="/" onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink href={basePath || "/"} onClick={() => setMobileMenuOpen(false)}>
                 Home
               </MobileNavLink>
-              <MobileNavLink href="/about" onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink href={`${basePath}/about`} onClick={() => setMobileMenuOpen(false)}>
                 About Us
               </MobileNavLink>
 
               <div className="my-2 border-t border-slate-700 pt-2">
                 <p className="mb-2 px-3 text-xs text-gray-400">ACADEMICS</p>
-                <MobileNavLink href="/departments" onClick={() => setMobileMenuOpen(false)}>
+                <MobileNavLink href={`${basePath}/departments`} onClick={() => setMobileMenuOpen(false)}>
                   Departments
                 </MobileNavLink>
-                <MobileNavLink href="/programs" onClick={() => setMobileMenuOpen(false)}>
+                <MobileNavLink href={`${basePath}/programs`} onClick={() => setMobileMenuOpen(false)}>
                   Programs
                 </MobileNavLink>
-                <MobileNavLink href="/faculty" onClick={() => setMobileMenuOpen(false)}>
+                <MobileNavLink href={`${basePath}/faculty`} onClick={() => setMobileMenuOpen(false)}>
                   Faculty
                 </MobileNavLink>
               </div>
 
               <div className="my-2 border-t border-slate-700 pt-2">
                 <p className="mb-2 px-3 text-xs text-gray-400">ADMISSIONS</p>
-                <MobileNavLink href="/how-to-apply" onClick={() => setMobileMenuOpen(false)}>
+                <MobileNavLink href={`${basePath}/how-to-apply`} onClick={() => setMobileMenuOpen(false)}>
                   How to Apply
                 </MobileNavLink>
-                <MobileNavLink href="/requirements" onClick={() => setMobileMenuOpen(false)}>
+                <MobileNavLink href={`${basePath}/requirements`} onClick={() => setMobileMenuOpen(false)}>
                   Requirements
                 </MobileNavLink>
-                <MobileNavLink href="/fee-structure" onClick={() => setMobileMenuOpen(false)}>
+                <MobileNavLink href={`${basePath}/fee-structure`} onClick={() => setMobileMenuOpen(false)}>
                   Fee Structure
                 </MobileNavLink>
               </div>
 
-              <MobileNavLink href="/contact" onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink href={`${basePath}/contact`} onClick={() => setMobileMenuOpen(false)}>
                 Contact Us
               </MobileNavLink>
-              <MobileNavLink href="/downloads" onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink href={`${basePath}/downloads`} onClick={() => setMobileMenuOpen(false)}>
                 Downloads
+              </MobileNavLink>
+              <MobileNavLink href="/colleges" onClick={() => setMobileMenuOpen(false)}>
+                All Colleges
               </MobileNavLink>
 
               {isAuthenticated ? (
