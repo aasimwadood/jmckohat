@@ -20,7 +20,7 @@ export default async function FacultyPage() {
   // since the query builder can't infer a return type from a dynamic
   // column list.
   const [{ data: categories }, { data: members }] = await Promise.all([
-    supabase.from("faculty_categories").select("*").order("display_order"),
+    supabase.from("faculty_categories").select("*").order("name", { ascending: true }),
     profile
       ? supabase.from("faculty_directory").select("*").order("display_order")
       : supabase
@@ -62,9 +62,13 @@ export default async function FacultyPage() {
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue={categories[0]?.id} className="w-full">
-            <TabsList className="mb-8 grid w-full grid-cols-2 lg:grid-cols-4">
+            <TabsList className="mb-8 h-auto w-full flex-wrap justify-start gap-2 bg-transparent p-0">
               {categories.map((cat) => (
-                <TabsTrigger key={cat.id} value={cat.id}>
+                <TabsTrigger
+                  key={cat.id}
+                  value={cat.id}
+                  className="flex-none rounded-full border border-gray-200 bg-white px-4 py-2 data-[state=active]:border-blue-600 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:text-white"
+                >
                   {cat.name}
                 </TabsTrigger>
               ))}
