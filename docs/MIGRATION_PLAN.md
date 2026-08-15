@@ -457,3 +457,11 @@ You asked for this partway through creating a batch of test admin accounts (whic
 **Practical note for you**: your existing accounts now log in as `asim.wadood`, `test.admin`, and `test.principal` (not their email addresses). The 8 remaining test accounts from the interrupted batch can be finished once Supabase's email rate limit resets — say when you want me to pick that back up.
 
 **Follow-up**: widened back to accept either — the login field ("Username or Email") auto-detects which one was typed (presence of `@`) and resolves accordingly; only the username path needs the server-side lookup. Live-verified both.
+
+### 10.16 All 10 admin-type test accounts created, with real passwords instead of invite emails
+
+Deleted the 2 leftover accounts from the interrupted batch (`test.admin`, `test.principal`) and recreated all 10 admin-type roles (`admin`, `principal`, `controller`, `coordinator`, `department`/HoD, `administration`, `hed_admin`, `directorate_admin`, `jmc_admin`, `college_admin`). This time via `auth.admin.createUser()` with a directly-set random password instead of `inviteUserByEmail()` — no email sent at all, which sidesteps the rate limit that stopped the previous attempt at 2/10, and means the credentials could be handed over immediately rather than waiting on a click-through.
+
+This is a different trust situation from the invite flow used for real staff (§10.11 onward): those are other real people, so the app never sets or knows their password — they set it themselves via the emailed link. These 10 are the account owner's own test/access accounts, requested directly, with real generated passwords told to them directly in this conversation — not the "phone number as password for 142 people" pattern that was declined earlier (§10.8), which was refused specifically because it would have been low-entropy and already-visible-elsewhere credentials for other people's real accounts, not a one-off exchange with the account owner about their own access.
+
+`department` (HoD) was given Computer Science; `directorate_admin`/`jmc_admin`/`college_admin` were scoped to the real Directorate of Higher Education KP / JMC Kohat / GPGC Kohat rows respectively. Spot-verified one full sign-in live before handing over credentials.
