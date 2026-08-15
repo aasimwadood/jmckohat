@@ -207,3 +207,91 @@ status: 400, statusCode: '503', code: 'DatabaseInvalidObjectDefinition'
 This reproduces identically on `avatars`, `admission-documents`, `course-materials`, and `public-assets` — including buckets with no `allowed_mime_types` restriction and an admin-role user, ruling out an RLS-policy or MIME-check bug in this repo's SQL. The same upload succeeds instantly using the service-role client. Table-level PostgREST access (the user's JWT against `admission_documents`, `profiles`, etc.) works correctly throughout — only the separate Storage microservice's authenticated-role code path is affected. This points to a Storage-service/schema state issue on the Supabase project itself (a stuck or partial internal storage-schema migration is a known class of issue on hosted Supabase, sometimes clearing after a project pause/resume or a support-side fix), not a defect in `0010_storage.sql`'s policies or in the new action code. All disposable test users/rows created during this check were cleaned up.
 
 **Action needed from you**: check the Storage section of the Supabase dashboard for this project (or open a support request referencing `DatabaseInvalidObjectDefinition`) before relying on any end-user file upload in production — this affects every upload path in the app (course materials, assignment submissions, FYP deliverables, avatars, admission documents), not just the two built in this phase. The application code for all of them is correct and unchanged in its access pattern; this is an infrastructure-side blocker to verify/resolve on the Supabase project, not a follow-up code task.
+
+## 9. Phase 15 (in progress): HED → Directorate → JMC → College hierarchy
+
+**Status: schema design below, no migrations applied yet.** This is a new, much larger effort than Phases 1–14: it turns the single-college application into a multi-tenant one. Confirmed with you before writing any SQL:
+
+- **Pacing**: continuous phased build, same working style as before — audit/plan, then implement phase by phase with a report after each, no pause for approval between phases.
+- **Role mapping**: the existing 8 roles (`admin`, `faculty`, `student`, `department`, `controller`, `coordinator`, `principal`, `administration`) are **not** renamed or merged — they keep exactly their current college-scoped meaning. A new `college_admin` role is added on top, as its own distinct role, implementing the spec's "Principal / College Administrator" concept. **Known overlap, flagged rather than silently resolved**: the existing `admin` role already has full staff-provisioning power within its college, which substantially overlaps with what the spec describes for `college_admin`. Both will exist. How a real deployment divides responsibility between an `admin` and a `college_admin` at the same college is a business-process question for you to settle operationally — the schema/RBAC won't force a particular split.
+- **Seed data**: the existing GPGC Kohat college is seeded under **Directorate of Higher Education, KP** (code `DHE-KP`) → **JMC Kohat** (code `JMC-KOH`) → college type `GPGC`.
+
+### 9.1 What "college-scoped" means in the current schema today
+
+Nothing in the current schema has a notion of "college" — the whole system is implicitly one college. The closest existing scoping concept is `departments` (**academic** departments like CS/Math, unrelated to the spec's "Directorate"), and `profiles.department_id`. Every domain table (courses, admissions, promotions, fyp_groups, results, attendance, etc.) already traces back to a department — directly, via a course, or via a profile — which is what makes `current_department_id()` sufficient for today's RLS. That FK chain is the anchor point for adding college scoping without touching all ~65 tables individually.
+
+### 9.2 New schema (this phase)
+
+New tables:
+- `college_types` (`id`, `code` unique — `GPGC`/`GDC` seeded, extensible), `name`.
+- `directorates` (`id`, `name`, `code` unique, `status` active/inactive, timestamps).
+- `jmcs` (`id`, `name`, `code` unique, `directorate_id` FK, `district`, `division`, `address`, `contact_number`, `email`, `status`, timestamps). A JMC belongs to exactly one Directorate.
+- `colleges` (`id`, `name`, `code` unique, `college_type_id` FK, `jmc_id` FK, `district`, `division`, `address`, `contact_number`, `email`, `status`, timestamps). A college belongs to exactly one JMC. `principal_profile_id`/`college_admin_profile_id` are derived from `profiles` (role + `college_id`), not stored redundantly on `colleges`.
+
+Changed existing tables:
+- `departments` gets a required `college_id` FK → `colleges`. Backfilled to GPGC Kohat's row in the data migration below; `not null` added only after backfill.
+- `profiles` gets nullable `directorate_id`, `jmc_id`, `college_id` FKs. `college_id` is populated for every role (denormalized from `department_id` → `departments.college_id` via trigger, for RLS performance — avoids a 2-hop join on every policy check) plus set directly for the three new org-admin roles who aren't associated with an academic department at all. `directorate_id`/`jmc_id` are only set for `directorate_admin`/`jmc_admin` respectively.
+- `user_role` enum gains four values: `hed_admin`, `directorate_admin`, `jmc_admin`, `college_admin`. (Split into its own migration file — Postgres doesn't allow using a newly added enum value inside the same transaction it was added in, so the enum-add migration and the migration whose RLS policies reference the new values must be separate files.)
+
+New RLS helper functions, mirroring the existing `current_department_id()`/`current_user_role()`/`is_staff()` pattern in `0002_orgs.sql`:
+- `current_college_id()`, `current_jmc_id()`, `current_directorate_id()` — read off the caller's own `profiles` row.
+
+### 9.3 RLS strategy for the new org tables
+
+Straightforward hierarchy containment, `SECURITY DEFINER` where a cross-level existence check is needed to avoid recursive RLS:
+- `hed_admin`: full read/write on `directorates`, `jmcs`, `colleges`, `college_types`.
+- `directorate_admin`: read own directorate; read/write JMCs and colleges where `jmc.directorate_id = current_directorate_id()`; cannot create/edit Directorates or reach outside their assigned one (per spec §5, §14).
+- `jmc_admin`: read own JMC; read/write colleges where `college.jmc_id = current_jmc_id()`; cannot touch other JMCs (§7, §14).
+- `college_admin`/existing college-scoped roles: read their own college row only; no write access to the org hierarchy itself.
+
+### 9.4 RLS strategy for the existing ~65 tables (not yet implemented — next sub-phase)
+
+Every existing policy that scopes by `current_department_id()` or by an explicit college-wide role list (`admin`, `principal`, `administration`, etc.) needs an **additive** `or` clause, not a rewrite, so nothing that works today regresses:
+```sql
+-- existing clause, unchanged
+current_user_role() in ('admin', 'principal', 'administration')
+or (current_user_role() in ('department', 'faculty') and department_id = current_department_id())
+-- new, additive
+or current_user_role() = 'hed_admin'
+or (current_user_role() = 'directorate_admin' and <row's college's jmc's directorate> = current_directorate_id())
+or (current_user_role() = 'jmc_admin' and <row's college's jmc> = current_jmc_id())
+```
+This is the single largest piece of remaining work in this phase — every migration file from `0002` through `0009` has policies that need this additive clause. Doing it correctly and re-verifying live with disposable test accounts per new role (same methodology as every other phase) is its own multi-file sub-phase, tracked separately from the schema/enum/data-backfill migrations below.
+
+### 9.5 Explicitly out of scope for now, flagged rather than silently decided
+
+- **Public marketing/CMS content** (`site_settings`, `portal_*`, `downloads`, `faculty_directory`, `leadership`, `campus_locations`, `apply_steps`, `institution_faculties`, `department_contacts`, `contact_info`, `footer_info`) stays single-college/site-wide in this phase. The spec doesn't ask for per-college public websites, and building one would be a large separate feature (each college would need its own `(public)` site, its own domain/routing story, etc.) — not attempted here unless you ask for it.
+- **HED/Directorate/JMC dashboards, nav, reports, and audit-log entries** (spec §17–21, §28, §30) are built in a later sub-phase, after the schema/RLS foundation lands and is verified.
+- **Migrating existing users into the new role set** (spec §27) — no existing user's role changes in this phase; that happens once `college_admin` accounts are actually provisioned by JMC Kohat.
+
+### 9.6 Applied and live-verified
+
+Migrations `0026`–`0029` are applied to the live project (`bulqjxqdbfjbefbofzrd`):
+- `0026_hed_hierarchy_roles.sql` — the 4 enum values (its own file/transaction; Postgres won't let a newly added enum value be referenced in the same transaction it was added in).
+- `0027_hed_hierarchy_schema.sql` — `college_types`/`directorates`/`jmcs`/`colleges` tables, `departments.college_id`/`profiles.{directorate,jmc,college}_id`, the `sync_profile_college_id` trigger, `current_college_id()`/`current_jmc_id()`/`current_directorate_id()`, and RLS on the 4 new tables.
+- `0028_hed_hierarchy_seed_existing_college.sql` — seeds **Directorate of Higher Education, KP** (`DHE-KP`) → **JMC Kohat** (`JMC-KOH`) → **Government Postgraduate College Kohat** (`GPGC-KOH`, type `GPGC`), backfills every existing `departments`/`profiles` row to that one college, then sets `departments.college_id` `not null`.
+- `0029_hed_hierarchy_fix_rls_recursion.sql` — **a real bug found during live verification, not anticipated in the design**: `colleges_select_scoped` and `jmcs_select_scoped` each subqueried the other RLS-protected table, which Postgres correctly rejects as infinite recursion (`infinite recursion detected in policy for relation "jmcs"`). Fixed by adding `jmc_directorate_id()`/`college_jmc_id()` as `SECURITY DEFINER` helper functions and rewriting the 4 affected policies to call them instead of subquerying the sibling table directly — the same reason `current_user_role()`/`current_department_id()` are `SECURITY DEFINER` in `0002_orgs.sql`. Worth remembering for the next sub-phase: any RLS policy on table A that needs to check something on table B, where B's own policies check something on A, needs this pattern.
+
+**Live-verified with disposable test accounts** (one `hed_admin`, two `directorate_admin`s in different directorates, one `jmc_admin`, one `student`, plus an isolated second Directorate/JMC/College tree created and torn down for the test):
+- `hed_admin` sees every college across both test directorates.
+- `directorate_admin` sees exactly the colleges/JMCs under their own directorate, and zero rows from the other directorate's tree — confirmed both ways (each directorate_admin blind to the other's college).
+- `jmc_admin` sees exactly the colleges under their own JMC.
+- A `directorate_admin` attempting to rename a JMC outside their directorate is silently blocked (0 rows affected, verified the name didn't change) — RLS `with check`, not just a UI restriction.
+- A `directorate_admin` attempting to `insert` a new Directorate (hed_admin-only) is rejected.
+- An existing `student` account (unrelated to this phase) correctly resolves to exactly its one college via the `department_id` → `sync_profile_college_id` trigger chain, with no manual backfill needed for that user.
+- All test users/rows were deleted after verification; confirmed zero leftovers.
+
+### 9.7 Code layer updated to match (before any dashboard work)
+
+- `types/database.types.ts` — added `college_types`/`directorates`/`jmcs`/`colleges` row types and table entries, the 4 new enum values on `UserRoleEnum`, `OrgStatusEnum`, `departments.college_id`, `profiles.{directorate,jmc,college}_id`, and the 5 new RPC/helper function signatures.
+- `lib/permissions/roles.ts` — added the 4 roles to `USER_ROLES`/`ROLE_LABELS`/`ROLE_DASHBOARD_PATH`, and a new `ORG_ROLES` constant.
+- `lib/auth/session.ts` — `CurrentProfile` now carries `directorateId`/`jmcId`/`collegeId`.
+- **A privilege-escalation gap found and closed before it ever shipped**: simply adding the 4 new roles to `USER_ROLES` meant `STAFF_ROLES` (used unfiltered by the existing college-level `admin`'s "Add Staff" dropdown and its `provisionStaffSchema` Zod enum) would have let any college `admin` provision an `hed_admin` for themselves or anyone else — full system-wide access, self-granted, from an existing form that predates this phase entirely. Fixed by adding `COLLEGE_STAFF_ROLES` (the original 8, explicitly excluding `ORG_ROLES`) and switching `lib/validations/staff.ts` and `provision-staff-dialog.tsx` to it. `provisionStaffAction` itself needed no change — the Zod enum *is* the server-side enforcement, not just a UI filter. The 4 org roles get their own, separately-scoped provisioning actions in the next sub-phase (an `hed_admin` provisions `directorate_admin`/`jmc_admin`/`college_admin`; a `directorate_admin` provisions `jmc_admin`; a `jmc_admin` provisions `college_admin`) — none of that exists yet, so there is currently no way to create an org-level account at all except the same manual-SQL bootstrap already documented for the very first `admin` in the README.
+- `npm run build` passes clean (78 routes, zero TS/lint errors) after all of the above.
+
+### 9.8 Bootstrap note
+
+There is currently no in-app way to create the first `hed_admin` — by design, mirroring how the first `admin` was bootstrapped originally. Until the org-provisioning actions are built, create one manually the same way:
+```sql
+update profiles set role = 'hed_admin' where email = 'you@example.com';
+```

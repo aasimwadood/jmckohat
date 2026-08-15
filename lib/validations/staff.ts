@@ -1,8 +1,11 @@
 import { z } from "zod";
-import { STAFF_ROLES, type UserRole } from "@/lib/permissions/roles";
+import { COLLEGE_STAFF_ROLES } from "@/lib/permissions/roles";
 
-type StaffRole = Exclude<UserRole, "student">;
-const STAFF_ROLE_TUPLE = STAFF_ROLES as unknown as [StaffRole, ...StaffRole[]];
+// Deliberately COLLEGE_STAFF_ROLES, not STAFF_ROLES — see the comment on
+// COLLEGE_STAFF_ROLES in lib/permissions/roles.ts for why the 4 org-level
+// roles must never be selectable from this college-admin-facing form.
+type StaffRole = (typeof COLLEGE_STAFF_ROLES)[number];
+const STAFF_ROLE_TUPLE = COLLEGE_STAFF_ROLES as unknown as [StaffRole, ...StaffRole[]];
 
 export const provisionStaffSchema = z.object({
   fullName: z.string().trim().min(2, "Enter a full name").max(200),

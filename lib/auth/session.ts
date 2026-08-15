@@ -14,6 +14,9 @@ export type CurrentProfile = {
   currentSemesterId: string | null;
   avatarPath: string | null;
   isActive: boolean;
+  directorateId: string | null;
+  jmcId: string | null;
+  collegeId: string | null;
 };
 
 /**
@@ -32,7 +35,9 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, role, full_name, email, phone, department_id, current_semester_id, avatar_path, is_active")
+    .select(
+      "id, role, full_name, email, phone, department_id, current_semester_id, avatar_path, is_active, directorate_id, jmc_id, college_id",
+    )
     .eq("id", user.id)
     .single();
 
@@ -48,6 +53,9 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
     currentSemesterId: profile.current_semester_id,
     avatarPath: profile.avatar_path,
     isActive: profile.is_active,
+    directorateId: profile.directorate_id,
+    jmcId: profile.jmc_id,
+    collegeId: profile.college_id,
   };
 }
 

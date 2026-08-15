@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { provisionStaffAction } from "@/lib/actions/provision-staff";
-import { STAFF_ROLES, ROLE_LABELS } from "@/lib/permissions/roles";
+import { COLLEGE_STAFF_ROLES, ROLE_LABELS } from "@/lib/permissions/roles";
 
 type Department = { id: string; name: string };
 
@@ -73,7 +73,7 @@ export function ProvisionStaffDialog({ departments }: { departments: Department[
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {STAFF_ROLES.map((r) => (
+                  {COLLEGE_STAFF_ROLES.map((r) => (
                     <SelectItem key={r} value={r}>
                       {ROLE_LABELS[r]}
                     </SelectItem>

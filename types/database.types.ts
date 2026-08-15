@@ -1,8 +1,8 @@
-// Hand-authored from supabase/migrations/0001-0010, mirroring the shape
-// `supabase gen types typescript` would produce. Once a live Supabase
-// project has these migrations applied, regenerate with `npm run db:types`
-// and this file becomes the source of truth again — diff against it rather
-// than trusting this by hand indefinitely.
+// Hand-authored from supabase/migrations/0001-0029, mirroring the shape
+// `supabase gen types typescript` would produce. Once you have Docker or a
+// linked-project access token, regenerate with `npm run db:types` and this
+// file becomes the source of truth again — diff against it rather than
+// trusting this by hand indefinitely.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -16,7 +16,9 @@ type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export type UserRoleEnum =
   | "admin" | "faculty" | "student" | "department"
-  | "controller" | "coordinator" | "principal" | "administration";
+  | "controller" | "coordinator" | "principal" | "administration"
+  | "hed_admin" | "directorate_admin" | "jmc_admin" | "college_admin";
+export type OrgStatusEnum = "active" | "inactive";
 export type AdmissionStatusEnum = "pending" | "fee_approved" | "admitted" | "canceled";
 export type PromotionStatusEnum =
   | "pending_registration" | "registration_complete" | "fee_pending" | "promoted";
@@ -42,12 +44,32 @@ export type FypEvaluationCriterionEnum =
 type DepartmentsRow = {
   id: string; name: string; code: string; hod_profile_id: string | null;
   description: string | null; image_path: string | null; established_year: number | null;
-  labs_count: number; created_at: string; updated_at: string;
+  labs_count: number; college_id: string; created_at: string; updated_at: string;
 };
 type ProfilesRow = {
   id: string; role: UserRoleEnum; full_name: string; email: string; phone: string | null;
   department_id: string | null; avatar_path: string | null; current_semester_id: string | null;
-  is_active: boolean; created_at: string; updated_at: string;
+  is_active: boolean; directorate_id: string | null; jmc_id: string | null; college_id: string | null;
+  created_at: string; updated_at: string;
+};
+
+// HED hierarchy: college_types / directorates / jmcs / colleges ------------
+type CollegeTypesRow = { id: string; code: string; name: string; created_at: string };
+type DirectoratesRow = {
+  id: string; name: string; code: string; status: OrgStatusEnum;
+  created_at: string; updated_at: string;
+};
+type JmcsRow = {
+  id: string; directorate_id: string; name: string; code: string; district: string | null;
+  division: string | null; address: string | null; contact_number: string | null;
+  email: string | null; jmc_admin_profile_id: string | null; status: OrgStatusEnum;
+  created_at: string; updated_at: string;
+};
+type CollegesRow = {
+  id: string; jmc_id: string; college_type_id: string; name: string; code: string;
+  district: string | null; division: string | null; address: string | null;
+  contact_number: string | null; email: string | null; college_admin_profile_id: string | null;
+  status: OrgStatusEnum; created_at: string; updated_at: string;
 };
 type ProgramsRow = {
   id: string; department_id: string; name: string; degree_level: string; created_at: string;
@@ -313,8 +335,13 @@ export type Database = {
   public: {
     Tables: {
       departments: Table<DepartmentsRow, "id" | "hod_profile_id" | "description" | "image_path" | "established_year" | "labs_count" | "created_at" | "updated_at">;
-      profiles: Table<ProfilesRow, "phone" | "department_id" | "avatar_path" | "current_semester_id" | "is_active" | "created_at" | "updated_at">;
+      profiles: Table<ProfilesRow, "phone" | "department_id" | "avatar_path" | "current_semester_id" | "is_active" | "directorate_id" | "jmc_id" | "college_id" | "created_at" | "updated_at">;
       programs: Table<ProgramsRow, "id" | "created_at">;
+
+      college_types: Table<CollegeTypesRow, "id" | "created_at">;
+      directorates: Table<DirectoratesRow, "id" | "status" | "created_at" | "updated_at">;
+      jmcs: Table<JmcsRow, "id" | "district" | "division" | "address" | "contact_number" | "email" | "jmc_admin_profile_id" | "status" | "created_at" | "updated_at">;
+      colleges: Table<CollegesRow, "id" | "district" | "division" | "address" | "contact_number" | "email" | "college_admin_profile_id" | "status" | "created_at" | "updated_at">;
       academic_sessions: Table<AcademicSessionsRow, "id" | "is_active" | "created_at">;
       semesters: Table<SemestersRow, "id" | "is_current" | "created_at">;
 
@@ -406,6 +433,11 @@ export type Database = {
       current_department_id: { Args: Record<string, never>; Returns: string };
       is_staff: { Args: Record<string, never>; Returns: boolean };
       teaches_course: { Args: { target_course_id: string }; Returns: boolean };
+      current_college_id: { Args: Record<string, never>; Returns: string };
+      current_jmc_id: { Args: Record<string, never>; Returns: string };
+      current_directorate_id: { Args: Record<string, never>; Returns: string };
+      jmc_directorate_id: { Args: { p_jmc_id: string }; Returns: string };
+      college_jmc_id: { Args: { p_college_id: string }; Returns: string };
     };
     Enums: {
       user_role: UserRoleEnum;
@@ -419,6 +451,7 @@ export type Database = {
       attendance_status: AttendanceStatusEnum;
       merit_category: MeritCategoryEnum;
       fee_status: FeeStatusEnum;
+      org_status: OrgStatusEnum;
     };
   };
 };

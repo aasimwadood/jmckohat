@@ -47,6 +47,12 @@ There's an unavoidable chicken-and-egg step: admin accounts are provisioned by a
    ```
 3. Log in — you'll land on `/dashboard/admin` and can provision every other staff account (faculty, HoD, controller, coordinator, principal, administration) from there.
 
+The same bootstrap applies to `hed_admin` (top of the new HED → Directorate → JMC → College hierarchy — see below): `update profiles set role = 'hed_admin' where email = '...'`. There's no in-app way to create one yet; the org-provisioning UI is the next sub-phase.
+
+## HED hierarchy (in progress)
+
+This app is being extended from a single-college system into a multi-tenant one — Higher Education Department → Directorate → JMC (Joint Management Council) → College. The schema, RLS, and role vocabulary for this landed in migrations `0026`–`0029`; the existing GPGC Kohat data was backfilled under a seeded Directorate of Higher Education KP → JMC Kohat → GPGC Kohat college, and live-verified with real signed-in test accounts (cross-directorate/cross-JMC isolation, write rejection outside scope, etc.). **Not built yet**: the HED/Directorate/JMC dashboards, nav, org CRUD screens, and the provisioning flows for the 4 new roles — there's currently no in-app way to create a `directorate_admin`/`jmc_admin`/`college_admin` at all. Full detail, including a real RLS-recursion bug found and fixed during verification, is in [docs/MIGRATION_PLAN.md](docs/MIGRATION_PLAN.md) §9.
+
 ### Regenerating database types
 
 `types/database.types.ts` is currently **hand-authored** from the SQL in `supabase/migrations/` (see the note at the top of that file) — it was written this way because generating it required either Docker (for `supabase gen types --local`) or a linked project with an access token, neither available in the environment this was built in. Once you have Docker or `supabase login` access:
