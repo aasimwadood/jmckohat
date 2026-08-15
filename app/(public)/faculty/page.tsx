@@ -4,15 +4,32 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Faculty" };
 
 export default async function FacultyPage() {
   const supabase = await createClient();
+  const profile = await getCurrentProfile();
 
+  // Personal mobile numbers are only visible to signed-in users — the anon
+  // (public) Postgres role is column-privilege-restricted from `phone`
+  // entirely (0033_faculty_directory_phone_privacy.sql), so `select("*")`
+  // would error for a signed-out visitor. Two separate typed queries (one
+  // per branch) rather than a single call with a ternary column string,
+  // since the query builder can't infer a return type from a dynamic
+  // column list.
   const [{ data: categories }, { data: members }] = await Promise.all([
     supabase.from("faculty_categories").select("*").order("display_order"),
-    supabase.from("faculty_directory").select("*").order("display_order"),
+    profile
+      ? supabase.from("faculty_directory").select("*").order("display_order")
+      : supabase
+          .from("faculty_directory")
+          .select(
+            "id, category_id, department_id, name, designation, qualification, photo_path, specialization, email, publications_count, display_order",
+          )
+          .order("display_order")
+          .then((res) => ({ ...res, data: res.data?.map((m) => ({ ...m, phone: null })) ?? null })),
   ]);
 
   if (!categories || categories.length === 0) {
