@@ -36,6 +36,12 @@ export const RESOURCE_ROLES = {
   userManagement: ["admin"],
   auditLog: ["admin"],
   siteContent: ["admin"],
+  // Coordinator is the primary owner per spec; admin/principal/college_admin
+  // get full management access too. Appointment-order issuance specifically
+  // is further restricted to principal/college_admin/admin at the RPC layer
+  // (supabase/migrations/0038_recruitment_functions.sql) — coordinator can
+  // see that step but not perform it.
+  recruitment: ["admin", "principal", "college_admin", "coordinator"],
 } as const satisfies Record<string, UserRole[]>;
 
 export type Resource = keyof typeof RESOURCE_ROLES;

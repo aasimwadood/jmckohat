@@ -1,4 +1,4 @@
-// Hand-authored from supabase/migrations/0001-0029, mirroring the shape
+// Hand-authored from supabase/migrations/0001-0040, mirroring the shape
 // `supabase gen types typescript` would produce. Once you have Docker or a
 // linked-project access token, regenerate with `npm run db:types` and this
 // file becomes the source of truth again — diff against it rather than
@@ -38,6 +38,18 @@ export type FeeStatusEnum = "pending" | "paid";
 export type FypEvaluationCriterionEnum =
   | "innovation" | "technical_implementation" | "problem_solving"
   | "documentation" | "presentation_and_demo" | "teamwork";
+export type RecruitmentAdStatusEnum =
+  | "draft" | "published" | "applications_open" | "applications_closed"
+  | "under_scrutiny" | "scrutiny_completed" | "merit_generated" | "candidates_shortlisted"
+  | "interviews_scheduled" | "interviews_completed" | "final_merit_prepared"
+  | "selection_finalized" | "appointment_orders_issued" | "completed" | "cancelled";
+export type RecruitmentApplicationStatusEnum =
+  | "draft" | "submitted" | "under_scrutiny" | "documents_under_verification"
+  | "eligible" | "ineligible" | "shortlisted" | "interview_scheduled" | "interview_completed"
+  | "selected" | "waiting_list" | "not_selected" | "appointment_issued" | "rejected" | "withdrawn";
+export type RecruitmentDocumentStatusEnum = "pending" | "verified" | "rejected" | "not_required";
+export type RecruitmentEligibilityStatusEnum = "pending" | "eligible" | "ineligible";
+export type RecruitmentAttendanceEnum = "present" | "absent";
 
 // Row shapes ----------------------------------------------------------------
 
@@ -322,6 +334,76 @@ type CampusLocationsRow = {
   phone: string | null; email: string | null;
 };
 
+// Recruitment / Appointment system -----------------------------------------
+type ApplicantProfilesRow = {
+  id: string; full_name: string; father_name: string | null; cnic: string | null;
+  dob: string | null; gender: string | null; phone: string | null; email: string;
+  address: string | null; domicile: string | null; created_at: string; updated_at: string;
+};
+type RecruitmentAdvertisementsRow = {
+  id: string; college_id: string; title: string; ad_number: string | null; ad_date: string;
+  opening_date: string; closing_date: string; interview_date: string | null;
+  location: string | null; description: string | null; instructions: string | null;
+  status: RecruitmentAdStatusEnum; created_by: string; created_at: string; updated_at: string;
+};
+type RecruitmentPositionsRow = {
+  id: string; advertisement_id: string; title: string; department_id: string | null;
+  bps_grade: string | null; vacancies: number; required_qualification: string | null;
+  required_degree: string | null; required_subject: string | null; required_experience: string | null;
+  age_limit: string | null; gender_requirement: string | null; domicile_requirement: string | null;
+  quota_category: string | null; other_criteria: string | null;
+  interview_shortlist_per_vacancy: number; created_at: string; updated_at: string;
+};
+type RecruitmentMeritCriteriaRow = {
+  id: string; position_id: string; name: string; max_score: number; sort_order: number;
+};
+type RecruitmentRequiredDocumentsRow = {
+  id: string; position_id: string; document_type: string; is_mandatory: boolean;
+};
+type RecruitmentApplicationsRow = {
+  id: string; application_number: string | null; position_id: string; applicant_id: string;
+  status: RecruitmentApplicationStatusEnum; qualification: string | null; degree: string | null;
+  institution: string | null; subject: string | null; year_of_completion: number | null;
+  marks_obtained: number | null; total_marks: number | null; percentage_cgpa: number | null;
+  eligibility_status: RecruitmentEligibilityStatusEnum; scrutiny_remarks: string | null;
+  scrutinized_by: string | null; scrutinized_at: string | null; rejection_reason: string | null;
+  final_rank: number | null; submitted_at: string | null; withdrawn_at: string | null;
+  created_at: string; updated_at: string;
+};
+type RecruitmentApplicationExperienceRow = {
+  id: string; application_id: string; organization: string; position: string;
+  start_date: string | null; end_date: string | null; is_current: boolean; description: string | null;
+};
+type RecruitmentApplicationDocumentsRow = {
+  id: string; application_id: string; document_type: string; file_path: string; uploaded_at: string;
+  verification_status: RecruitmentDocumentStatusEnum; verified_by: string | null;
+  verified_at: string | null; verification_remarks: string | null;
+};
+type RecruitmentMeritScoresRow = {
+  id: string; application_id: string; criterion_id: string; score: number;
+  entered_by: string; entered_at: string;
+};
+type RecruitmentInterviewsRow = {
+  id: string; position_id: string; interview_date: string; interview_time: string | null;
+  venue: string | null; panel_info: string | null; instructions: string | null;
+  created_by: string; created_at: string;
+};
+type RecruitmentInterviewMarksRow = {
+  id: string; application_id: string; interview_id: string; attendance: RecruitmentAttendanceEnum;
+  marks: number | null; remarks: string | null; entered_by: string | null; entered_at: string | null;
+  finalized: boolean; finalized_by: string | null; finalized_at: string | null;
+};
+type RecruitmentCountersRow = {
+  college_id: string; academic_year: number; counter_type: string; last_seq: number;
+};
+type RecruitmentAppointmentOrdersRow = {
+  id: string; application_id: string; order_number: string; issued_date: string;
+  terms_and_conditions: string | null; reporting_instructions: string | null;
+  joining_deadline: string | null; authorized_officer_name: string; authorized_officer_title: string;
+  generated_by: string; generated_at: string;
+};
+type RecruitmentApplicationMeritTotalsRow = { application_id: string; total_score: number | null };
+
 // Table<Row, InsertOptionalKeys> builds the Supabase-style
 // { Row, Insert, Update, Relationships: [] } entry from a Row type.
 type Table<Row, InsertOptionalKeys extends keyof Row> = {
@@ -411,8 +493,24 @@ export type Database = {
       office_hours: Table<OfficeHoursRow, "id" | "day" | "opening_time" | "closing_time" | "status" | "display_order">;
       department_contacts: Table<DepartmentContactsRow, "id" | "department_id" | "phone" | "email">;
       campus_locations: Table<CampusLocationsRow, "id" | "address" | "map_url" | "phone" | "email">;
+
+      applicant_profiles: Table<ApplicantProfilesRow, "father_name" | "cnic" | "dob" | "gender" | "phone" | "address" | "domicile" | "created_at" | "updated_at">;
+      recruitment_advertisements: Table<RecruitmentAdvertisementsRow, "id" | "ad_number" | "ad_date" | "interview_date" | "location" | "description" | "instructions" | "status" | "created_at" | "updated_at">;
+      recruitment_positions: Table<RecruitmentPositionsRow, "id" | "department_id" | "bps_grade" | "required_qualification" | "required_degree" | "required_subject" | "required_experience" | "age_limit" | "gender_requirement" | "domicile_requirement" | "quota_category" | "other_criteria" | "interview_shortlist_per_vacancy" | "created_at" | "updated_at">;
+      recruitment_merit_criteria: Table<RecruitmentMeritCriteriaRow, "id" | "sort_order">;
+      recruitment_required_documents: Table<RecruitmentRequiredDocumentsRow, "id" | "is_mandatory">;
+      recruitment_applications: Table<RecruitmentApplicationsRow, "id" | "application_number" | "status" | "qualification" | "degree" | "institution" | "subject" | "year_of_completion" | "marks_obtained" | "total_marks" | "percentage_cgpa" | "eligibility_status" | "scrutiny_remarks" | "scrutinized_by" | "scrutinized_at" | "rejection_reason" | "final_rank" | "submitted_at" | "withdrawn_at" | "created_at" | "updated_at">;
+      recruitment_application_experience: Table<RecruitmentApplicationExperienceRow, "id" | "start_date" | "end_date" | "is_current" | "description">;
+      recruitment_application_documents: Table<RecruitmentApplicationDocumentsRow, "id" | "uploaded_at" | "verification_status" | "verified_by" | "verified_at" | "verification_remarks">;
+      recruitment_merit_scores: Table<RecruitmentMeritScoresRow, "id" | "entered_at">;
+      recruitment_interviews: Table<RecruitmentInterviewsRow, "id" | "interview_time" | "venue" | "panel_info" | "instructions" | "created_at">;
+      recruitment_interview_marks: Table<RecruitmentInterviewMarksRow, "id" | "attendance" | "marks" | "remarks" | "entered_by" | "entered_at" | "finalized" | "finalized_by" | "finalized_at">;
+      recruitment_counters: Table<RecruitmentCountersRow, "last_seq">;
+      recruitment_appointment_orders: Table<RecruitmentAppointmentOrdersRow, "id" | "issued_date" | "terms_and_conditions" | "reporting_instructions" | "joining_deadline" | "generated_at">;
     };
-    Views: { [_ in never]: never };
+    Views: {
+      recruitment_application_merit_totals: { Row: RecruitmentApplicationMeritTotalsRow; Relationships: [] };
+    };
     Functions: {
       admit_student: { Args: { p_admission_id: string }; Returns: AdmissionsRow };
       approve_admission_fee: { Args: { p_admission_id: string; p_receipt_number: string }; Returns: AdmissionsRow };
@@ -438,6 +536,44 @@ export type Database = {
       current_directorate_id: { Args: Record<string, never>; Returns: string };
       jmc_directorate_id: { Args: { p_jmc_id: string }; Returns: string };
       college_jmc_id: { Args: { p_college_id: string }; Returns: string };
+      recruitment_position_college_id: { Args: { p_position_id: string }; Returns: string };
+      recruitment_application_college_id: { Args: { p_application_id: string }; Returns: string };
+      is_recruitment_staff: { Args: Record<string, never>; Returns: boolean };
+      submit_recruitment_application: { Args: { p_application_id: string }; Returns: RecruitmentApplicationsRow };
+      withdraw_recruitment_application: { Args: { p_application_id: string }; Returns: RecruitmentApplicationsRow };
+      scrutinize_recruitment_application: {
+        Args: { p_application_id: string; p_eligibility_status: RecruitmentEligibilityStatusEnum; p_remarks: string | null };
+        Returns: RecruitmentApplicationsRow;
+      };
+      verify_recruitment_document: {
+        Args: { p_document_id: string; p_status: RecruitmentDocumentStatusEnum; p_remarks: string | null };
+        Returns: RecruitmentApplicationDocumentsRow;
+      };
+      shortlist_recruitment_candidates: { Args: { p_position_id: string; p_application_ids: string[] }; Returns: RecruitmentApplicationsRow[] };
+      schedule_recruitment_interview: {
+        Args: {
+          p_position_id: string; p_interview_date: string; p_interview_time: string | null;
+          p_venue: string | null; p_panel_info: string | null; p_instructions: string | null;
+        };
+        Returns: RecruitmentInterviewsRow;
+      };
+      enter_interview_marks: {
+        Args: {
+          p_application_id: string; p_interview_id: string; p_attendance: RecruitmentAttendanceEnum;
+          p_marks: number | null; p_remarks: string | null;
+        };
+        Returns: RecruitmentInterviewMarksRow;
+      };
+      finalize_interview_marks: { Args: { p_application_id: string; p_interview_id: string }; Returns: RecruitmentInterviewMarksRow };
+      reopen_interview_marks: { Args: { p_application_id: string; p_interview_id: string }; Returns: RecruitmentInterviewMarksRow };
+      finalize_recruitment_selection: { Args: { p_position_id: string }; Returns: RecruitmentApplicationsRow[] };
+      issue_appointment_order: {
+        Args: {
+          p_application_id: string; p_terms: string | null; p_reporting_instructions: string | null;
+          p_joining_deadline: string | null; p_officer_name: string; p_officer_title: string;
+        };
+        Returns: RecruitmentAppointmentOrdersRow;
+      };
     };
     Enums: {
       user_role: UserRoleEnum;
@@ -452,6 +588,11 @@ export type Database = {
       merit_category: MeritCategoryEnum;
       fee_status: FeeStatusEnum;
       org_status: OrgStatusEnum;
+      recruitment_ad_status: RecruitmentAdStatusEnum;
+      recruitment_application_status: RecruitmentApplicationStatusEnum;
+      recruitment_document_status: RecruitmentDocumentStatusEnum;
+      recruitment_eligibility_status: RecruitmentEligibilityStatusEnum;
+      recruitment_attendance: RecruitmentAttendanceEnum;
     };
   };
 };

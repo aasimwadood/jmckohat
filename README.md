@@ -1,6 +1,6 @@
 # GPGC Kohat
 
-A university management system for Government Postgraduate College Kohat — public site, admissions, academics, and 8 role-specific dashboards (Student, Faculty, Department/HoD, Admin, Controller of Examinations, Coordinator, Principal, Administration).
+A university management system for Government Postgraduate College Kohat — public site, admissions, academics, recruitment/appointment workflows, and 8 role-specific dashboards (Student, Faculty, Department/HoD, Admin, Controller of Examinations, Coordinator, Principal, Administration).
 
 Built with **Next.js 15 (App Router)**, **TypeScript**, **Supabase** (Postgres + Auth + Storage + Realtime), **shadcn/ui + Tailwind CSS v4**, **Zod**, and **React Hook Form**.
 
@@ -34,7 +34,7 @@ Visit `http://localhost:3000`.
    ```
    This is fixture data, not production content — don't run it against a real production database.
 5. **Enable email** in Supabase Auth (Authentication → Providers) if you want signup confirmation emails and staff-invite emails to actually send. In local/dev, Supabase's built-in email testing works out of the box.
-6. **Storage buckets** (`avatars`, `public-assets`, `course-materials`, `assignment-submissions`, `fyp-deliverables`, `admission-documents`) are created by migration `0010_storage.sql` — nothing to do manually.
+6. **Storage buckets** (`avatars`, `public-assets`, `course-materials`, `assignment-submissions`, `fyp-deliverables`, `admission-documents`, `recruitment-documents`) are created by migrations `0010_storage.sql` and `0040_recruitment_storage.sql` — nothing to do manually.
 
 ### Bootstrapping your first admin account
 
@@ -56,6 +56,16 @@ This app was extended from a single-college system into a multi-tenant one — H
 `hed_admin`/`directorate_admin`/`jmc_admin` also have real (read-only) visibility into the academic data under their scope — admissions, results, attendance, enrollments, assignments, course materials, fee payments, promotions, and the profiles directory — each additively RLS-scoped to their directorate/JMC/college, verified live across two fully separate college trees so cross-org isolation holds in both directions. This is deliberately **not** every table: FYP, announcements, notifications, library/tickets/events, and similar operational tables were left alone — no spec section asks an HED/Directorate/JMC admin to see individual FYP deliverables or support tickets.
 
 **Deliberately not built**: `college_admin` does not get a parallel copy of the academic-management screens `/dashboard/admin` already has for the same college (students, faculty, courses, etc.) — that would just duplicate ~60 existing routes. The two roles' permissions genuinely overlap in the spec; this app keeps them separate without merging or duplicating, and leaves how a real deployment divides the work between them as an operational decision, not a schema one. Full detail, including a real RLS-recursion bug found and fixed during verification, is in [docs/MIGRATION_PLAN.md](docs/MIGRATION_PLAN.md) §9.
+
+## Recruitment / Appointment System
+
+A full advertisement → application → scrutiny → merit → shortlist → interview → selection → appointment-order pipeline, scoped per college. `coordinator` is the primary owner (also reachable by `admin`/`principal`/`college_admin`, at `/dashboard/recruitment` — deliberately its own top-level route rather than nested under `/dashboard/coordinator`, since that layout's own role guard would block the other three roles first); issuing the actual appointment order is further restricted to `principal`/`college_admin`/`admin` only.
+
+Job applicants are **not** students or staff — they get their own `applicant_profiles` identity, entirely separate from `profiles`/`user_role`, so none of the app's existing RLS policies needed to change. The public side lives at `/recruitment` (browse/apply) and `/recruitment/portal` (applicant account: application status, documents, interview info, printable appointment order once issued — no PDF library, a print stylesheet + the browser's native print-to-PDF, matching the fact that this app doesn't generate PDFs anywhere else).
+
+Merit scoring is a configurable per-position criteria table, not a hard-coded formula. Every application-status transition (submit, scrutinize, shortlist, interview marks, final selection, appointment order) goes through a `SECURITY DEFINER` RPC — same pattern as `admit_student()`/`approve_admission_fee()` — with no blanket UPDATE policy on the tables those functions own.
+
+**Not yet applied or live-verified** — see `docs/MIGRATION_PLAN.md` §11 for the full design writeup, a real bug found while building it (a malformed hand-authored type broke row-typing app-wide, not just for the new tables), and the exact next steps before this ships.
 
 ### Regenerating database types
 
@@ -100,9 +110,9 @@ Deploys like any Next.js 15 app — [Vercel](https://vercel.com) is the path of 
 
 ```
 app/
-  (public)/        marketing site — home, about, departments, programs, faculty, admissions info, contact, downloads
+  (public)/        marketing site — home, about, departments, programs, faculty, admissions info, contact, downloads, recruitment listings + applicant portal
   (auth)/           login, register (students only), forgot/update password
-  dashboard/        one folder per role, each with its own layout.tsx (role guard + nav) and sub-routes
+  dashboard/        one folder per role, each with its own layout.tsx (role guard + nav) and sub-routes; dashboard/recruitment/ is the one exception — shared across coordinator/admin/principal/college_admin rather than one-per-role
   auth/callback/    Supabase email-confirmation / password-recovery redirect handler
   api/               a couple of Route Handlers (e.g. fee receipt generation) where a file response makes more sense than a Server Action
 components/
@@ -112,9 +122,9 @@ components/
   shared/            small generic helpers (e.g. ImageWithFallback)
 lib/
   supabase/          browser/server/admin Supabase clients + Storage signed-URL helper
-  auth/               session helpers (getCurrentProfile, requireRole) — the only sanctioned way to read "who is this" server-side
+  auth/               session helpers (getCurrentProfile, requireRole) — the only sanctioned way to read "who is this" server-side; applicant-session.ts is the parallel version for the separate applicant identity (see Recruitment section above)
   permissions/        role vocabulary, resource→role policy map, role_permissions service
-  actions/            Server Actions — one file per domain (auth, admissions, promotions, assignments, results, attendance, materials, fyp, timetable, announcements, users, audit, ...)
+  actions/            Server Actions — one file per domain (auth, admissions, promotions, assignments, results, attendance, materials, fyp, timetable, announcements, users, audit, recruitment, recruitment-applicant, ...)
   validations/        Zod schemas, one per domain, mirroring lib/actions/
   services/           small pure/query helpers (notifications, scheduling-conflicts)
   utils/               grading scale (letterGrade/gradePoint/computeGpa)
@@ -158,6 +168,7 @@ There's no automated test suite (none existed in the legacy app either, and none
 - [ ] Email deliverability for signup confirmation, password reset, and staff-invite emails in your actual Supabase email configuration.
 - [ ] File upload size/type limits against real files (PDFs, videos for FYP demos, etc.) at the sizes your users will actually use.
 - [ ] Concurrent-user behavior on the atomic operations (admission registration numbers, promotion course registration) — logic is written to be race-safe (row locks in the RPCs) but hasn't been load-tested.
+- [ ] **The entire Recruitment/Appointment System (migrations `0037`–`0040`)** — built, `npm run build`/`npm run lint` clean, but not yet applied to any Postgres instance and therefore not RLS/RPC-verified live the way every other phase in this list was. Apply the migrations, then walk the full pipeline once (advertise → apply as a test applicant → scrutinize → shortlist → interview → select → issue appointment order) before trusting any of it in production. See `docs/MIGRATION_PLAN.md` §11.
 
 ## Remaining assumptions and TODOs
 
@@ -168,3 +179,5 @@ There's no automated test suite (none existed in the legacy app either, and none
 - **"System Logs"** is admin-only by design (RLS). `logAudit()` now covers staff provisioning/deactivation plus the admissions and promotions money/status-transition RPCs (`admit_student`, `approve_admission_fee`, `cancel_admission`, `upload_admission_document`, `verify_promotion_fee`); extending it to more Server Actions is straightforward if you want even broader coverage.
 - **Course File Report** and **Curriculum Management** were fully mock/hardcoded in the legacy app with no real spec behind their detailed structure; both were rebuilt against real data/tables rather than reverse-engineering fake content.
 - **`legacy-vite-src/`** is kept in the repo for reference per your request — remove it (and the other `*.reference` config leftovers at the repo root) once you're done comparing against it.
+- **Recruitment/Appointment System migrations are unapplied.** `0037`–`0040` are written and build-clean but have never been run against a real Postgres instance (no Supabase CLI/Docker/psql in this environment). Run `npx supabase db push`, then live-verify per the testing checklist above before relying on any of it.
+- **Multi-college public website (spec Part 1) and the full existing-workflow audit (spec Part 3) are not started.** Both were explicitly deferred in favor of building Recruitment (Part 2) first, per your own prioritization — see `docs/MIGRATION_PLAN.md` §11 for the full three-part spec and why only one part was attempted at a time.

@@ -9,6 +9,7 @@ const NAVIGATION: DashboardNavItem[] = [
   { name: "Academic Calendar", icon: "Calendar", href: "/dashboard/coordinator/calendar" },
   { name: "Faculty Coordination", icon: "Users", href: "/dashboard/coordinator/faculty" },
   { name: "Scheduling Conflicts", icon: "AlertCircle", href: "/dashboard/coordinator/conflicts" },
+  { name: "Recruitment", icon: "UserPlus", href: "/dashboard/recruitment" },
 ];
 
 export default async function CoordinatorLayout({ children }: { children: React.ReactNode }) {

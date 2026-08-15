@@ -9,6 +9,7 @@ const NAVIGATION: DashboardNavItem[] = [
   { name: "Role Management", icon: "Shield", href: "/dashboard/admin/roles" },
   { name: "Timetable", icon: "Calendar", href: "/dashboard/admin/timetable" },
   { name: "Announcements", icon: "FileText", href: "/dashboard/admin/announcements" },
+  { name: "Recruitment", icon: "UserPlus", href: "/dashboard/recruitment" },
   { name: "Reports", icon: "TrendingUp", href: "/dashboard/admin/reports" },
   { name: "System Settings", icon: "Settings", href: "/dashboard/admin/settings" },
   { name: "System Logs", icon: "Activity", href: "/dashboard/admin/logs" },
