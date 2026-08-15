@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Target, Eye, History, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
+import { ImageWithFallback } from "@/components/shared/image-with-fallback";
 
 export const metadata: Metadata = { title: "About Us" };
 
@@ -71,22 +72,35 @@ export default async function AboutPage() {
               <h2 className="text-gray-900">Our Leadership</h2>
             </div>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {leaders.map((leader) => (
-                <Card key={leader.id}>
-                  <CardContent className="p-6">
-                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-                      <span className="text-xl text-blue-600">
-                        {((leader.first_name?.[0] ?? "") + (leader.last_name?.[0] ?? "")).toUpperCase()}
-                      </span>
-                    </div>
-                    <h3 className="mb-1 text-gray-900">
-                      {leader.title} {leader.first_name} {leader.last_name}
-                    </h3>
-                    <p className="mb-2 text-blue-600">{leader.position}</p>
-                    <p className="text-sm text-gray-500">{leader.department}</p>
-                  </CardContent>
-                </Card>
-              ))}
+              {leaders.map((leader) => {
+                const photoUrl = leader.photo_path
+                  ? supabase.storage.from("public-assets").getPublicUrl(leader.photo_path).data.publicUrl
+                  : undefined;
+                return (
+                  <Card key={leader.id}>
+                    <CardContent className="p-6">
+                      {photoUrl ? (
+                        <ImageWithFallback
+                          src={photoUrl}
+                          alt={`${leader.first_name} ${leader.last_name}`}
+                          className="mb-4 h-16 w-16 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+                          <span className="text-xl text-blue-600">
+                            {((leader.first_name?.[0] ?? "") + (leader.last_name?.[0] ?? "")).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <h3 className="mb-1 text-gray-900">
+                        {leader.title} {leader.first_name} {leader.last_name}
+                      </h3>
+                      <p className="mb-2 text-blue-600">{leader.position}</p>
+                      <p className="text-sm text-gray-500">{leader.department}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </section>

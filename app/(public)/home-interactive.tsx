@@ -8,13 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ImageWithFallback } from "@/components/shared/image-with-fallback";
 
-type Leader = { title: string; name: string; designation: string; image: string; message: string; fullMessage: string };
+type Leader = { title: string; name: string; designation: string; image?: string; message: string; fullMessage: string };
 type Faculty = {
   id: string;
   name: string;
   dean: string;
   description: string;
-  image: string;
+  image?: string;
   color: string;
   programs: string[];
   fullDetail: string;
