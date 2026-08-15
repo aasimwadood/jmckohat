@@ -9,7 +9,10 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
   const [didError, setDidError] = useState(false);
   const { src, alt, style, className, ...rest } = props;
 
-  if (didError) {
+  // An empty string src makes the browser treat it as "reload the current
+  // page" — never render a real <img> without one, same fallback UI as an
+  // actual load error.
+  if (didError || !src) {
     return (
       <div className={`inline-block bg-gray-100 text-center align-middle ${className ?? ""}`} style={style}>
         <div className="flex h-full w-full items-center justify-center">
