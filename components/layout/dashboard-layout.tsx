@@ -2,12 +2,79 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { GraduationCap, Menu, X, LogOut, Home, type LucideIcon } from "lucide-react";
+import {
+  GraduationCap,
+  Menu,
+  X,
+  LogOut,
+  Home,
+  LayoutDashboard,
+  Users,
+  Shield,
+  Calendar,
+  FileText,
+  TrendingUp,
+  Settings,
+  Activity,
+  UserPlus,
+  DollarSign,
+  BookOpen,
+  HelpCircle,
+  FileCheck,
+  Award,
+  AlertCircle,
+  Bell,
+  Landmark,
+  School,
+  Building2,
+  MessageSquare,
+  Upload,
+  CheckCircle,
+  User,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/lib/actions/auth";
 import { ROLE_LABELS, type UserRole } from "@/lib/permissions/roles";
 
-export type DashboardNavItem = { name: string; icon: LucideIcon; href: string };
+// Nav icons are referenced by name, not by component reference — a Lucide
+// component itself is a function, and functions can't be passed from a
+// Server Component (every dashboard's layout.tsx) to this Client Component
+// as plain prop data; only serializable values or already-rendered JSX can
+// cross that boundary. Same reason the public pages' Icon() lookups exist.
+const NAV_ICONS: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  Users,
+  Shield,
+  Calendar,
+  FileText,
+  TrendingUp,
+  Settings,
+  Activity,
+  UserPlus,
+  DollarSign,
+  BookOpen,
+  HelpCircle,
+  FileCheck,
+  Award,
+  AlertCircle,
+  Bell,
+  Landmark,
+  School,
+  Building2,
+  MessageSquare,
+  Upload,
+  CheckCircle,
+  User,
+};
+
+function NavIcon({ name, className }: { name: string; className?: string }) {
+  const Icon = NAV_ICONS[name] ?? Sparkles;
+  return <Icon className={className} />;
+}
+
+export type DashboardNavItem = { name: string; icon: string; href: string };
 
 export function DashboardLayout({
   userName,
@@ -70,7 +137,7 @@ export function DashboardLayout({
                 onClick={() => setSidebarOpen(false)}
                 className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-gray-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
               >
-                <item.icon className="h-5 w-5" />
+                <NavIcon name={item.icon} className="h-5 w-5" />
                 <span>{item.name}</span>
               </Link>
             ))}

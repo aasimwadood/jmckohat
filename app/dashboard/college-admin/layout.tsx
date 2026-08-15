@@ -1,4 +1,3 @@
-import { LayoutDashboard } from "lucide-react";
 import { DashboardLayout, type DashboardNavItem } from "@/components/layout/dashboard-layout";
 import { NotificationBell } from "@/components/features/realtime/notification-bell";
 import { requireRole } from "@/lib/auth/session";
@@ -11,7 +10,7 @@ import { getInitialNotifications } from "@/lib/services/notifications";
 // admin/principal/department/etc. screens already do that for this
 // college) — see docs/MIGRATION_PLAN.md §9 for the flagged, deliberate
 // admin/college_admin overlap decision.
-const NAVIGATION: DashboardNavItem[] = [{ name: "Dashboard", icon: LayoutDashboard, href: "/dashboard/college-admin" }];
+const NAVIGATION: DashboardNavItem[] = [{ name: "Dashboard", icon: "LayoutDashboard", href: "/dashboard/college-admin" }];
 
 export default async function CollegeAdminLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireRole("college_admin");
