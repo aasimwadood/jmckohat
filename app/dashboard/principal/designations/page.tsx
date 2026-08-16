@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { DesignationPicker, HeadOfDepartmentPicker } from "@/components/features/designations/designation-picker";
 import { AddDesignationTypeForm } from "@/components/features/designations/add-designation-type-form";
+import { STAFF_ROLES } from "@/lib/permissions/roles";
 
 export default async function PrincipalDesignationsPage() {
   const profile = await requireRole("principal");
@@ -21,7 +22,12 @@ export default async function PrincipalDesignationsPage() {
     supabase.from("designation_types").select("*").order("name"),
     supabase.from("designation_assignments").select("*").eq("college_id", profile.collegeId),
     supabase.from("departments").select("id, name, hod_profile_id").eq("college_id", profile.collegeId).order("name"),
-    supabase.from("profiles").select("id, full_name, role").eq("college_id", profile.collegeId).order("full_name"),
+    supabase
+      .from("profiles")
+      .select("id, full_name, role")
+      .eq("college_id", profile.collegeId)
+      .in("role", STAFF_ROLES)
+      .order("full_name"),
   ]);
 
   const options = (people ?? []).map((p) => ({ id: p.id, name: p.full_name, role: p.role }));

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { DesignationPicker } from "@/components/features/designations/designation-picker";
+import { STAFF_ROLES } from "@/lib/permissions/roles";
 
 export default async function DepartmentDesignationsPage() {
   const profile = await requireRole("department");
@@ -19,7 +20,12 @@ export default async function DepartmentDesignationsPage() {
     supabase.from("designation_types").select("*").eq("scope", "department").order("name"),
     supabase.from("designation_assignments").select("*").eq("department_id", profile.departmentId),
     supabase.from("departments").select("name").eq("id", profile.departmentId).single(),
-    supabase.from("profiles").select("id, full_name, role").eq("department_id", profile.departmentId).order("full_name"),
+    supabase
+      .from("profiles")
+      .select("id, full_name, role")
+      .eq("department_id", profile.departmentId)
+      .in("role", STAFF_ROLES)
+      .order("full_name"),
   ]);
 
   const options = (people ?? []).map((p) => ({ id: p.id, name: p.full_name, role: p.role }));
