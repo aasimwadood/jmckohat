@@ -2,7 +2,6 @@ import { z } from "zod";
 
 export const enrollStudentsSchema = z.object({
   courseId: z.string().uuid(),
-  semesterId: z.string().uuid(),
   studentProfileIds: z.array(z.string().uuid()).min(1, "Select at least one student"),
 });
 export type EnrollStudentsInput = z.infer<typeof enrollStudentsSchema>;

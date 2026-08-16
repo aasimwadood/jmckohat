@@ -1,7 +1,30 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { EnrollmentsView } from "@/components/features/enrollments/enrollments-view";
+import type { Database } from "@/types/database.types";
+
+// The project's PostgREST max-rows setting caps any single response at
+// 1000 regardless of the range requested — a real department can now
+// exceed that (1580 enrollments for Computer Science alone), so this pages
+// through in fixed-size chunks until a short page signals the end.
+const PAGE_SIZE = 1000;
+
+async function fetchAllEnrollments(supabase: SupabaseClient<Database>, courseIds: string[]) {
+  const rows: { id: string; student_profile_id: string; course_id: string; semester_id: string; status: string }[] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data } = await supabase
+      .from("enrollments")
+      .select("id, student_profile_id, course_id, semester_id, status")
+      .in("course_id", courseIds)
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+  }
+  return rows;
+}
 
 export default async function DepartmentEnrollmentsPage() {
   const profile = await requireRole("department");
@@ -20,24 +43,19 @@ export default async function DepartmentEnrollmentsPage() {
     supabase.from("semesters").select("id, number, academic_session_id").order("number"),
     supabase
       .from("profiles")
-      .select("id, full_name, username")
+      .select("id, full_name, username, batch, current_semester_id")
       .eq("department_id", profile.departmentId)
       .eq("role", "student")
       .order("full_name"),
   ]);
 
   const courseIds = (courses ?? []).map((c) => c.id);
-  const { data: enrollments } = courseIds.length
-    ? await supabase
-        .from("enrollments")
-        .select("id, student_profile_id, course_id, semester_id, status")
-        .in("course_id", courseIds)
-    : { data: [] };
+  const enrollments = courseIds.length ? await fetchAllEnrollments(supabase, courseIds) : [];
 
   const studentNames = new Map((students ?? []).map((s) => [s.id, s.full_name]));
   const courseLabels = new Map((courses ?? []).map((c) => [c.id, `${c.code} — ${c.title}`]));
 
-  const enrollmentRows = (enrollments ?? []).map((e) => ({
+  const enrollmentRows = enrollments.map((e) => ({
     id: e.id,
     studentName: studentNames.get(e.student_profile_id) ?? "Unknown",
     courseLabel: courseLabels.get(e.course_id) ?? "Unknown",
@@ -45,11 +63,18 @@ export default async function DepartmentEnrollmentsPage() {
     status: e.status,
   }));
 
+  const semesterNumberById = new Map((semesters ?? []).map((s) => [s.id, s.number]));
+
   return (
     <EnrollmentsView
       courses={courses ?? []}
-      semesters={(semesters ?? []).map((s) => ({ id: s.id, label: `Semester ${s.number}` }))}
-      students={(students ?? []).map((s) => ({ id: s.id, name: s.full_name, username: s.username }))}
+      students={(students ?? []).map((s) => ({
+        id: s.id,
+        name: s.full_name,
+        username: s.username,
+        batch: s.batch,
+        semesterNumber: s.current_semester_id ? (semesterNumberById.get(s.current_semester_id) ?? null) : null,
+      }))}
       enrollments={enrollmentRows}
     />
   );
