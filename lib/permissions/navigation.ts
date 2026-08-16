@@ -77,6 +77,7 @@ const NAVIGATION_BY_ROLE: Partial<Record<CurrentProfile["role"], DashboardNavIte
     { name: "Exam Scheduling", icon: "Calendar", href: "/dashboard/department/exams", resource: "examSchedules" },
     { name: "Marks Overview", icon: "FileCheck", href: "/dashboard/department/marks", resource: "results" },
     { name: "Curriculum", icon: "BookOpen", href: "/dashboard/department/curriculum" },
+    { name: "FYP Settings", icon: "Award", href: "/dashboard/department/fyp" },
     { name: "Reports", icon: "TrendingUp", href: "/dashboard/department/reports" },
     { name: "Announcements", icon: "Bell", href: "/dashboard/department/announcements", resource: "announcements" },
     { name: "Designations", icon: "Shield", href: "/dashboard/department/designations" },
