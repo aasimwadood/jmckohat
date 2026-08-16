@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { EditProfileForm } from "./edit-profile-form";
-import { AvatarUpload } from "./avatar-upload";
+import { EditProfileForm } from "@/components/features/profile/edit-profile-form";
+import { AvatarUpload } from "@/components/features/profile/avatar-upload";
 
 export default async function StudentProfilePage() {
   const profile = await requireRole("student");

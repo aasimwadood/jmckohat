@@ -68,6 +68,7 @@ const NAVIGATION_BY_ROLE: Partial<Record<CurrentProfile["role"], DashboardNavIte
     { name: "Class Schedule", icon: "Calendar", href: "/dashboard/faculty/schedule", resource: "timetable" },
     { name: "FYP Supervision", icon: "Award", href: "/dashboard/faculty/fyp", resource: "fyp" },
     { name: "Course File Report", icon: "FileText", href: "/dashboard/faculty/course-file", resource: "courseFileReports" },
+    { name: "Profile", icon: "User", href: "/dashboard/faculty/profile" },
   ],
   department: [
     { name: "Dashboard", icon: "LayoutDashboard", href: "/dashboard/department" },

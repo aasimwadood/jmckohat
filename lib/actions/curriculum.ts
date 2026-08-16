@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import {
   createCourseSchema,
+  updateCourseSchema,
   assignTeacherSchema,
   removeTeacherAssignmentSchema,
 } from "@/lib/validations/curriculum";
@@ -38,6 +39,35 @@ export async function createCourseAction(formData: FormData): Promise<ActionResu
     title: parsed.data.title,
     credits: parsed.data.credits,
   });
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/department/curriculum");
+  return {};
+}
+
+export async function updateCourseAction(formData: FormData): Promise<ActionResult> {
+  await requireRole("department", "admin");
+
+  const rawProgramId = formData.get("programId");
+  const parsed = updateCourseSchema.safeParse({
+    courseId: formData.get("courseId"),
+    code: formData.get("code"),
+    title: formData.get("title"),
+    credits: formData.get("credits"),
+    programId: rawProgramId ? rawProgramId : null,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("courses")
+    .update({
+      code: parsed.data.code,
+      title: parsed.data.title,
+      credits: parsed.data.credits,
+      program_id: parsed.data.programId,
+    })
+    .eq("id", parsed.data.courseId);
   if (error) return { error: error.message };
 
   revalidatePath("/dashboard/department/curriculum");

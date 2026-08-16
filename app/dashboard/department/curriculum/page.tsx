@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { AddCourseForm } from "@/components/features/curriculum/add-course-form";
 import { CourseTeachers } from "@/components/features/curriculum/course-teachers";
+import { EditCourseDialog } from "@/components/features/curriculum/edit-course-dialog";
 
 export default async function DepartmentCurriculumPage() {
   const profile = await requireRole("department");
@@ -78,6 +79,7 @@ export default async function DepartmentCurriculumPage() {
     isOwnDepartment: t.department_id === profile.departmentId,
   }));
   const semesterOptions = (semesters ?? []).map((s) => ({ id: s.id, number: s.number }));
+  const programOptions = (programs ?? []).map((p) => ({ id: p.id, name: p.name }));
 
   const renderCourseTable = (list: typeof courses | undefined) => (
     <Table>
@@ -92,7 +94,12 @@ export default async function DepartmentCurriculumPage() {
       <TableBody>
         {(list ?? []).map((c) => (
           <TableRow key={c.id}>
-            <TableCell className="align-top">{c.code}</TableCell>
+            <TableCell className="align-top">
+              <div className="flex items-center gap-1">
+                {c.code}
+                <EditCourseDialog course={c} programs={programOptions} />
+              </div>
+            </TableCell>
             <TableCell className="align-top">{c.title}</TableCell>
             <TableCell className="align-top">{c.credits}</TableCell>
             <TableCell>

@@ -882,3 +882,17 @@ You asked for two additions to §28's Add Course: letting a course be taught by 
 **Live-verified**, 6/6 checks: the real CS HOD (Dr Muhammad Abid) assigns a real Chemistry-department teacher (Abdul Rehman) to a CS course — cross-department, exactly the scenario asked for; that teacher's own `teaches_course()` now resolves `true` for it; the offering is stored as `fresh`, then correctly updated to `repeat` on re-assignment rather than being ignored; a different department's HOD is correctly rejected trying to touch the same assignment (RLS). All test data cleaned up, confirmed gone. Along the way, hit (and worked around, by filtering on `role` explicitly) two more real name collisions between an existing teacher and an unrelated student sharing the same name — the same class of coincidence as §24, not a bug, just something worth remembering whenever a lookup uses `full_name` alone.
 
 `npx tsc --noEmit` and `npm run build` clean.
+
+## 31. Real bug found and fixed: cross-department teachers still weren't showing in the picker — plus a faculty profile page and Edit Course
+
+You reported that §30's cross-department teacher picker still wasn't showing other departments' teachers, and asked for a faculty profile page and course editing.
+
+**Root cause of the picker bug**: §30 broadened the *query* to be college-wide, but never checked whether RLS would actually let a `department`-role caller read those rows — it didn't. `profiles` had exactly three SELECT policies: your own row, your own department, or `admin`/`principal`. There was no branch letting an HOD see *any* profile outside their own department, cross-department or not. This is why the earlier verification passed — it only tested the *write* path (`course_faculty` only checks the course's department, never the teacher's, so assignment always worked), never the *read* path that populates the dropdown. Fixed with migration `0058`: a new `profiles_select_teaching_staff_college_wide` policy exposing only `faculty`/`department`/`coordinator`/`controller`-role profiles college-wide — a staff directory, not student data, and it doesn't touch any other `profiles` policy or column grant.
+
+**Faculty profile page** (`/dashboard/faculty/profile`): avatar upload, name/phone editing, department, username, and current course assignments (with fresh/repeat badges) — same page shape as the student one. `AvatarUpload` and `EditProfileForm` were already fully generic (`uploadAvatarAction`/`updateOwnProfileAction` never checked role) but lived inside `app/dashboard/student/profile/`; moved both to `components/features/profile/` so faculty and student pages share one implementation instead of duplicating it.
+
+**Edit Course**: a small pencil-icon dialog next to each course's code (`EditCourseDialog`) using a new `updateCourseAction` — same RLS this app already had (`courses_write_admin_or_own_department`), just no UI had ever called it for anything but insert.
+
+**Live-verified**, 3/3 checks: the real HOD's own teacher-picker query, run exactly as the page runs it, now returns 83 cross-department teachers (was 0 before `0058`, confirming this was the actual bug, not a coincidence); the HOD edits a real course's title and credit hours and the change persists; a real faculty account's profile-page queries (department lookup, course assignments) succeed. Test data cleaned up, confirmed gone.
+
+`npx tsc --noEmit`, `npm run build`, `npm run lint` clean.

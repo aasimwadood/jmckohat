@@ -18,6 +18,7 @@ const NAVIGATION: DashboardNavItem[] = [
   { name: "Class Schedule", icon: "Calendar", href: "/dashboard/faculty/schedule", resource: "timetable" },
   { name: "FYP Supervision", icon: "Award", href: "/dashboard/faculty/fyp", resource: "fyp" },
   { name: "Course File Report", icon: "FileText", href: "/dashboard/faculty/course-file", resource: "courseFileReports" },
+  { name: "Profile", icon: "User", href: "/dashboard/faculty/profile" },
 ];
 
 export default async function FacultyLayout({ children }: { children: React.ReactNode }) {
