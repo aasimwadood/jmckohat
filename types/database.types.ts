@@ -66,6 +66,13 @@ type ProfilesRow = {
   registration_number: string | null; father_name: string | null; program_id: string | null; batch: string | null;
 };
 
+// Designations: Principal/HOD-managed focal-person titles ------------------
+type DesignationTypesRow = { id: string; name: string; scope: "college" | "department"; created_at: string };
+type DesignationAssignmentsRow = {
+  id: string; designation_type_id: string; college_id: string; department_id: string | null;
+  profile_id: string; assigned_by: string | null; assigned_at: string;
+};
+
 // HED hierarchy: college_types / directorates / jmcs / colleges ------------
 type CollegeTypesRow = { id: string; code: string; name: string; created_at: string };
 type DirectoratesRow = {
@@ -430,6 +437,8 @@ export type Database = {
       profiles: Table<ProfilesRow, "phone" | "department_id" | "avatar_path" | "current_semester_id" | "is_active" | "directorate_id" | "jmc_id" | "college_id" | "created_at" | "updated_at" | "registration_number" | "father_name" | "program_id" | "batch">;
       programs: Table<ProgramsRow, "id" | "created_at">;
 
+      designation_types: Table<DesignationTypesRow, "id" | "created_at">;
+      designation_assignments: Table<DesignationAssignmentsRow, "id" | "department_id" | "assigned_by" | "assigned_at">;
       college_types: Table<CollegeTypesRow, "id" | "created_at">;
       directorates: Table<DirectoratesRow, "id" | "status" | "created_at" | "updated_at">;
       jmcs: Table<JmcsRow, "id" | "district" | "division" | "address" | "contact_number" | "email" | "jmc_admin_profile_id" | "status" | "created_at" | "updated_at">;

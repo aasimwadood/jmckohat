@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function FacultyOverviewPage() {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
 
   const { data: department } = profile.departmentId

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MarksUploadForm } from "./marks-upload-form";
 
 export default async function FacultyMarksPage() {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
 
   const { data: assignments } = await supabase

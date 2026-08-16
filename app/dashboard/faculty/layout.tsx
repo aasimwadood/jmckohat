@@ -20,7 +20,7 @@ const NAVIGATION: DashboardNavItem[] = [
 ];
 
 export default async function FacultyLayout({ children }: { children: React.ReactNode }) {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
   const [notifications, accessible] = await Promise.all([
     getInitialNotifications(profile.id),
     getAccessibleResources(profile.role),

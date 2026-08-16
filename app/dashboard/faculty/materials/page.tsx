@@ -7,7 +7,7 @@ import { UploadMaterialDialog } from "./upload-material-dialog";
 import { DeleteMaterialButton } from "./delete-material-button";
 
 export default async function FacultyMaterialsPage() {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
 
   const { data: courseFaculty } = await supabase.from("course_faculty").select("course_id").eq("faculty_profile_id", profile.id);

@@ -9,7 +9,7 @@ import type { ActionResult } from "@/lib/actions/auth";
 const MAX_SIZE_BYTES = 25 * 1024 * 1024;
 
 export async function uploadMaterialAction(formData: FormData): Promise<ActionResult> {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
 
   const parsed = materialFormSchema.safeParse({
     courseId: formData.get("courseId"),
@@ -48,7 +48,7 @@ export async function uploadMaterialAction(formData: FormData): Promise<ActionRe
 }
 
 export async function deleteMaterialAction(materialId: string): Promise<ActionResult> {
-  await requireRole("faculty");
+  await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
 
   const { data: material } = await supabase.from("course_materials").select("file_path").eq("id", materialId).single();

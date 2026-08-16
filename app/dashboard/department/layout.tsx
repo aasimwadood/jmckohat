@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { getInitialNotifications } from "@/lib/services/notifications";
 import { getAccessibleResources } from "@/lib/permissions/role-permissions";
 import { filterNavByAccess } from "@/lib/permissions/policies";
+import { getTeachingNavExtras } from "@/lib/permissions/teaching";
 
 const NAVIGATION: DashboardNavItem[] = [
   { name: "Dashboard", icon: "LayoutDashboard", href: "/dashboard/department" },
@@ -15,15 +16,17 @@ const NAVIGATION: DashboardNavItem[] = [
   { name: "Curriculum", icon: "BookOpen", href: "/dashboard/department/curriculum" },
   { name: "Reports", icon: "TrendingUp", href: "/dashboard/department/reports" },
   { name: "Announcements", icon: "Bell", href: "/dashboard/department/announcements", resource: "announcements" },
+  { name: "Designations", icon: "Shield", href: "/dashboard/department/designations" },
 ];
 
 export default async function DepartmentLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireRole("department");
-  const [notifications, accessible] = await Promise.all([
+  const [notifications, accessible, teachingExtras] = await Promise.all([
     getInitialNotifications(profile.id),
     getAccessibleResources(profile.role),
+    getTeachingNavExtras(profile.id),
   ]);
-  const navigation = filterNavByAccess(NAVIGATION, accessible);
+  const navigation = [...filterNavByAccess(NAVIGATION, accessible), ...teachingExtras];
 
   return (
     <DashboardLayout

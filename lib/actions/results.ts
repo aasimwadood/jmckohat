@@ -7,7 +7,7 @@ import { submitResultSchema } from "@/lib/validations/results";
 import type { ActionResult } from "@/lib/actions/auth";
 
 export async function submitResultAction(formData: FormData): Promise<ActionResult> {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
 
   const parsed = submitResultSchema.safeParse({
     studentProfileId: formData.get("studentProfileId"),

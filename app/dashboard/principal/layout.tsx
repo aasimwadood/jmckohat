@@ -12,6 +12,7 @@ const NAVIGATION: DashboardNavItem[] = [
   { name: "Departmental Reports", icon: "FileText", href: "/dashboard/principal/departments" },
   { name: "Exam Results", icon: "Award", href: "/dashboard/principal/results" },
   { name: "Announcements", icon: "Bell", href: "/dashboard/principal/announcements", resource: "announcements" },
+  { name: "Designations", icon: "Shield", href: "/dashboard/principal/designations" },
   { name: "Recruitment", icon: "UserPlus", href: "/dashboard/recruitment", resource: "recruitment" },
 ];
 

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CourseFileEditor } from "./course-file-editor";
 
 export default async function FacultyCourseFilePage() {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
 
   const { data: assignments } = await supabase

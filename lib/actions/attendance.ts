@@ -6,7 +6,7 @@ import { requireRole } from "@/lib/auth/session";
 import type { ActionResult } from "@/lib/actions/auth";
 
 export async function markAttendanceAction(formData: FormData): Promise<ActionResult> {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
 
   const courseId = formData.get("courseId");
   const semesterId = formData.get("semesterId");

@@ -7,7 +7,7 @@ import { DAY_NAMES } from "@/lib/constants/timetable";
 import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function FacultySchedulePage() {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
 
   const { data: entries } = await supabase

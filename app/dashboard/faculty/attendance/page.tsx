@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MarkAttendanceForm } from "./mark-attendance-form";
 
 export default async function FacultyAttendancePage() {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
 
   const { data: assignments } = await supabase

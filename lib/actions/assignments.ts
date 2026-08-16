@@ -7,7 +7,7 @@ import { createAssignmentSchema, gradeSubmissionSchema } from "@/lib/validations
 import type { ActionResult } from "@/lib/actions/auth";
 
 export async function createAssignmentAction(formData: FormData): Promise<ActionResult> {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
 
   const parsed = createAssignmentSchema.safeParse({
     courseId: formData.get("courseId"),
@@ -34,7 +34,7 @@ export async function createAssignmentAction(formData: FormData): Promise<Action
 }
 
 export async function gradeSubmissionAction(formData: FormData): Promise<ActionResult> {
-  await requireRole("faculty");
+  await requireRole("faculty", "department", "coordinator", "controller");
 
   const parsed = gradeSubmissionSchema.safeParse({
     submissionId: formData.get("submissionId"),

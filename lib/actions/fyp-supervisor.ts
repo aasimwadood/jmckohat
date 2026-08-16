@@ -7,7 +7,7 @@ import type { ActionResult } from "@/lib/actions/auth";
 import type { FypEvaluationCriterionEnum, FypGroupStatusEnum } from "@/types/database.types";
 
 export async function respondToSupervisionAction(groupId: string, approve: boolean): Promise<ActionResult> {
-  await requireRole("faculty");
+  await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
   const { error } = await supabase.rpc("respond_to_fyp_supervision", { p_group_id: groupId, p_approve: approve });
   if (error) return { error: error.message };
@@ -16,7 +16,7 @@ export async function respondToSupervisionAction(groupId: string, approve: boole
 }
 
 export async function reviewFypProposalAction(proposalId: string, approve: boolean, remarks?: string): Promise<ActionResult> {
-  await requireRole("faculty");
+  await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
   const { error } = await supabase.rpc("review_fyp_proposal", {
     p_proposal_id: proposalId,
@@ -29,7 +29,7 @@ export async function reviewFypProposalAction(proposalId: string, approve: boole
 }
 
 export async function advanceFypStageAction(groupId: string, targetStatus: FypGroupStatusEnum): Promise<ActionResult> {
-  await requireRole("faculty");
+  await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
   const { error } = await supabase.rpc("advance_fyp_stage", { p_group_id: groupId, p_target_status: targetStatus });
   if (error) return { error: error.message };
@@ -47,7 +47,7 @@ export const EVALUATION_CRITERIA: { key: FypEvaluationCriterionEnum; label: stri
 ];
 
 export async function submitEvaluationAction(formData: FormData): Promise<ActionResult> {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
   const groupId = formData.get("groupId");
   if (typeof groupId !== "string" || !groupId) return { error: "Missing group" };
 

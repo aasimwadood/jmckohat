@@ -10,7 +10,7 @@ import { AdvanceStageButton } from "./advance-stage-button";
 import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function FacultyFypPage() {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
 
   const { data: groups } = await supabase

@@ -7,7 +7,7 @@ import { CreateAssignmentDialog } from "./create-assignment-dialog";
 import { GradeSubmissionsDialog } from "./grade-submissions-dialog";
 
 export default async function FacultyAssignmentsPage() {
-  const profile = await requireRole("faculty");
+  const profile = await requireRole("faculty", "department", "coordinator", "controller");
   const supabase = await createClient();
 
   const { data: courseFaculty } = await supabase.from("course_faculty").select("course_id").eq("faculty_profile_id", profile.id);
