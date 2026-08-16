@@ -858,3 +858,13 @@ Same class of gap as §27: the Curriculum page (`/dashboard/department/curriculu
 **Live-verified**, 6/6 checks: a real HOD (Dr Muhammad Abid) creates a real course; a different department's HOD is correctly rejected creating a course inside CS (RLS); the HOD assigns a real teacher (Dr Muhammad Asif) to it for a real semester; the teacher's own `teaches_course()` — the actual function every attendance/materials/marks RLS policy depends on — now genuinely resolves `true` for that course, not just a row existing in a table; the HOD removes the assignment and `teaches_course()` correctly flips back to `false`. All test data cleaned up, confirmed gone.
 
 `npx tsc --noEmit` and `npm run build` clean.
+
+## 29. FYP Settings redesigned: pick a batch, not one of 8 semester rows
+
+You asked for a batch-based picker instead of §27's list of all 8 semesters — students only ever do FYP in their final semesters, so showing all 8 was unnecessary clutter.
+
+**What shipped**: the page now computes, per batch, which semester most of its students are actually in (real `profiles.batch`/`current_semester_id` data, resilient to a few repeat students lagging behind their batch), filters to batches in semester 6 or later — the last 3 of an 8-semester BS program, matching "final year" — and shows only those in a dropdown (e.g. "FALL-2022 (Semester 8)"). Selecting one shows the same enable/disable toggle, group-size, supervisor-quota, and deadline fields from §27 (`FypConfigRow`, now wrapped by a new `FypBatchConfig` picker), still writing to the same `(department_id, semester_id)` row — batch is a display/filter concern, not a new schema column, since each batch already maps to exactly one semester at any point in time in this system's model. A batch with no students in its final semesters simply doesn't appear.
+
+**Live-verified** against real Computer Science data: of the 4 real batches, exactly the 2 expected ones qualify (FALL-2022 at semester 8, FALL-2023 at semester 6) while FALL-2024 (semester 4) and FALL-2025 (semester 2) are correctly excluded; confirmed picking a batch and enabling it writes to the correct semester's config row via the real HOD account, then cleaned up.
+
+`npx tsc --noEmit` and `npm run build` clean.
