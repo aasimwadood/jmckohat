@@ -846,3 +846,15 @@ You described the intended FYP workflow: HOD enables/disables FYP for a batch/se
 **Live-verified**, 6/6 checks, full real workflow end-to-end: confirmed a student genuinely cannot start a group before the HOD enables the semester (`fyp_not_enabled_for_semester`); the real HOD (Dr Muhammad Abid) enables FYP for semester 8; an unrelated faculty account is correctly rejected attempting the same (RLS); the student can then start a group, selecting a real supervisor and a real topic ("AI-Based Attendance System"); the supervisor rejects it (group correctly resets to awaiting a new supervisor); the student withdraws and re-forms a group with a new proposal; the supervisor accepts it. All test data cleaned up, confirmed gone.
 
 `npx tsc --noEmit` and `npm run build` clean.
+
+## 28. HOD can now add course details and assign teachers from the dashboard, not just via a one-off script
+
+Same class of gap as §27: the Curriculum page (`/dashboard/department/curriculum`) was read-only, even though RLS already let a department head write both `courses` and `course_faculty` for their own department (`courses_write_admin_or_own_department`, `course_faculty_write_admin_or_department`, both from `0046`). Every course and teacher assignment on record (§18) was created by me directly against the database, not through the app — there was no page for an HOD to add a new course or assign a teacher to one going forward.
+
+**What shipped** (app code only, RLS already correct, no migration needed):
+- `lib/actions/curriculum.ts`: `createCourseAction` (code, title, credits, optional program), `assignTeacherAction` / `removeTeacherAssignmentAction` (course + teacher + semester, upsert/delete against `course_faculty`'s own primary key).
+- Curriculum page rebuilt: an "Add Course" form at the top, and each course row now shows its current teacher assignments as removable badges ("Dr. Asif — Sem 6 ×") plus a small picker to add a new one. Teacher options are the department's own staff who could plausibly teach (`faculty`/`department`/`coordinator`/`controller`, matching §20's "also teaches" set), not just `faculty`-role accounts.
+
+**Live-verified**, 6/6 checks: a real HOD (Dr Muhammad Abid) creates a real course; a different department's HOD is correctly rejected creating a course inside CS (RLS); the HOD assigns a real teacher (Dr Muhammad Asif) to it for a real semester; the teacher's own `teaches_course()` — the actual function every attendance/materials/marks RLS policy depends on — now genuinely resolves `true` for that course, not just a row existing in a table; the HOD removes the assignment and `teaches_course()` correctly flips back to `false`. All test data cleaned up, confirmed gone.
+
+`npx tsc --noEmit` and `npm run build` clean.
