@@ -590,6 +590,10 @@ export type Database = {
         };
         Returns: RecruitmentAppointmentOrdersRow;
       };
+      public_department_student_counts: {
+        Args: { p_college_id: string };
+        Returns: { department_id: string; student_count: number }[];
+      };
     };
     Enums: {
       user_role: UserRoleEnum;

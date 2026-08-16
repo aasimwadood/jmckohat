@@ -17,10 +17,13 @@ export default async function DepartmentsPage({ params }: { params: Promise<{ sl
 
   const supabase = await createClient();
 
-  const [{ data: departments }, { data: programs }, { data: students }, { data: facultyMembers }] = await Promise.all([
+  const [{ data: departments }, { data: programs }, { data: studentCountRows }, { data: facultyMembers }] = await Promise.all([
     supabase.from("departments").select("id, name, description, labs_count, hod_profile_id").eq("college_id", college.id).order("name"),
     supabase.from("programs").select("department_id, name"),
-    supabase.from("profiles").select("id, department_id").eq("role", "student"),
+    // profiles has no anon-read policy (it holds real student PII) and never
+    // should — this RPC exposes only the aggregate count this page needs.
+    // See 0051_public_faculty_and_student_count_fixes.sql.
+    supabase.rpc("public_department_student_counts", { p_college_id: college.id }),
     // "Head" and "Faculty" here deliberately come from faculty_directory (the
     // public staff directory), not profiles/hod_profile_id (real login
     // accounts) — this is an informational public page, and the college has
@@ -45,11 +48,9 @@ export default async function DepartmentsPage({ params }: { params: Promise<{ sl
     programsByDepartment.set(program.department_id, list);
   }
 
-  const studentCounts = new Map<string, number>();
-  for (const student of students ?? []) {
-    if (!student.department_id) continue;
-    studentCounts.set(student.department_id, (studentCounts.get(student.department_id) ?? 0) + 1);
-  }
+  const studentCounts = new Map<string, number>(
+    (studentCountRows ?? []).map((row) => [row.department_id, Number(row.student_count)]),
+  );
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">

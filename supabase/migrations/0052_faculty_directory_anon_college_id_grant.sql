@@ -1,0 +1,17 @@
+-- Root cause of the public Faculty page (and Departments page's faculty
+-- counts) showing nothing for real visitors, found by bisecting live with
+-- the anon key: Postgres requires SELECT privilege on every column
+-- referenced anywhere in a query, including WHERE-clause filters, not just
+-- the output column list. app/college/[slug]/faculty/page.tsx and
+-- departments/page.tsx both filter `.eq("college_id", college.id)` on
+-- faculty_directory — but college_id was added to that table by
+-- 0042_multi_college_public_site_schema.sql, *after*
+-- 0033_faculty_directory_phone_privacy.sql had already restricted anon's
+-- column grant to a fixed list that predates college_id. Nobody added
+-- college_id to that list when the multi-college site shipped, so every
+-- anon query filtering by it has failed with "permission denied for table"
+-- (Postgres's message when a referenced-but-ungranted column is involved,
+-- even if that column isn't requested in the output) since that phase went
+-- live. 0051 in this same fix pass re-issued the original (still-incomplete)
+-- grant list and did not fix this — confirmed live before writing this.
+grant select (college_id) on faculty_directory to anon;
