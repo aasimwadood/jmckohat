@@ -73,6 +73,18 @@ type DesignationAssignmentsRow = {
   profile_id: string; assigned_by: string | null; assigned_at: string;
 };
 
+// Proctorial Board: duty scheduling and complaints -------------------------
+type ProctorDutiesRow = {
+  id: string; college_id: string; department_id: string | null; assigned_to: string;
+  duty_type: string; duty_date: string; shift_time: string | null; location: string | null;
+  status: "scheduled" | "completed" | "missed" | "cancelled"; assigned_by: string | null;
+  notes: string | null; created_at: string;
+};
+type ProctorComplaintsRow = {
+  id: string; college_id: string; raised_by: string; against_student_id: string | null;
+  description: string; status: "open" | "reviewed" | "resolved"; reviewed_by: string | null; created_at: string;
+};
+
 // HED hierarchy: college_types / directorates / jmcs / colleges ------------
 type CollegeTypesRow = { id: string; code: string; name: string; created_at: string };
 type DirectoratesRow = {
@@ -439,6 +451,8 @@ export type Database = {
 
       designation_types: Table<DesignationTypesRow, "id" | "created_at">;
       designation_assignments: Table<DesignationAssignmentsRow, "id" | "department_id" | "assigned_by" | "assigned_at">;
+      proctor_duties: Table<ProctorDutiesRow, "id" | "department_id" | "shift_time" | "location" | "status" | "assigned_by" | "notes" | "created_at">;
+      proctor_complaints: Table<ProctorComplaintsRow, "id" | "against_student_id" | "status" | "reviewed_by" | "created_at">;
       college_types: Table<CollegeTypesRow, "id" | "created_at">;
       directorates: Table<DirectoratesRow, "id" | "status" | "created_at" | "updated_at">;
       jmcs: Table<JmcsRow, "id" | "district" | "division" | "address" | "contact_number" | "email" | "jmc_admin_profile_id" | "status" | "created_at" | "updated_at">;
@@ -556,6 +570,8 @@ export type Database = {
       current_department_id: { Args: Record<string, never>; Returns: string };
       is_staff: { Args: Record<string, never>; Returns: boolean };
       teaches_course: { Args: { target_course_id: string }; Returns: boolean };
+      is_chief_proctor: { Args: Record<string, never>; Returns: boolean };
+      is_staff_proctor: { Args: Record<string, never>; Returns: boolean };
       current_college_id: { Args: Record<string, never>; Returns: string };
       current_jmc_id: { Args: Record<string, never>; Returns: string };
       current_directorate_id: { Args: Record<string, never>; Returns: string };

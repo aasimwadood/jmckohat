@@ -5,6 +5,7 @@ import { getInitialNotifications } from "@/lib/services/notifications";
 import { getAccessibleResources } from "@/lib/permissions/role-permissions";
 import { filterNavByAccess } from "@/lib/permissions/policies";
 import { getTeachingNavExtras } from "@/lib/permissions/teaching";
+import { getProctorNavExtras } from "@/lib/permissions/proctorial";
 
 const NAVIGATION: DashboardNavItem[] = [
   { name: "Dashboard", icon: "LayoutDashboard", href: "/dashboard/coordinator" },
@@ -17,12 +18,13 @@ const NAVIGATION: DashboardNavItem[] = [
 
 export default async function CoordinatorLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireRole("coordinator");
-  const [notifications, accessible, teachingExtras] = await Promise.all([
+  const [notifications, accessible, teachingExtras, proctorExtras] = await Promise.all([
     getInitialNotifications(profile.id),
     getAccessibleResources(profile.role),
     getTeachingNavExtras(profile.id),
+    getProctorNavExtras(profile.id),
   ]);
-  const navigation = [...filterNavByAccess(NAVIGATION, accessible), ...teachingExtras];
+  const navigation = [...filterNavByAccess(NAVIGATION, accessible), ...teachingExtras, ...proctorExtras];
 
   return (
     <DashboardLayout
