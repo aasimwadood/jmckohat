@@ -120,7 +120,9 @@ type CoursesRow = {
   id: string; code: string; title: string; credits: number; department_id: string;
   program_id: string | null; created_at: string; updated_at: string;
 };
-type CourseFacultyRow = { course_id: string; faculty_profile_id: string; semester_id: string };
+type CourseFacultyRow = {
+  course_id: string; faculty_profile_id: string; semester_id: string; offering_type: "fresh" | "repeat";
+};
 type EnrollmentsRow = {
   id: string; student_profile_id: string; course_id: string; semester_id: string;
   status: EnrollmentStatusEnum; created_at: string;
@@ -461,7 +463,7 @@ export type Database = {
       semesters: Table<SemestersRow, "id" | "is_current" | "created_at">;
 
       courses: Table<CoursesRow, "id" | "credits" | "program_id" | "created_at" | "updated_at">;
-      course_faculty: Table<CourseFacultyRow, never>;
+      course_faculty: Table<CourseFacultyRow, "offering_type">;
       enrollments: Table<EnrollmentsRow, "id" | "status" | "created_at">;
       timetable_entries: Table<TimetableEntriesRow, "id" | "faculty_profile_id" | "room" | "group_name" | "created_at" | "updated_at">;
 

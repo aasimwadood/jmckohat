@@ -12,6 +12,7 @@ export const assignTeacherSchema = z.object({
   courseId: z.string().uuid(),
   facultyProfileId: z.string().uuid(),
   semesterId: z.string().uuid(),
+  offeringType: z.enum(["fresh", "repeat"]),
 });
 export type AssignTeacherInput = z.infer<typeof assignTeacherSchema>;
 

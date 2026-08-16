@@ -51,6 +51,7 @@ export async function assignTeacherAction(formData: FormData): Promise<ActionRes
     courseId: formData.get("courseId"),
     facultyProfileId: formData.get("facultyProfileId"),
     semesterId: formData.get("semesterId"),
+    offeringType: formData.get("offeringType"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
@@ -60,8 +61,9 @@ export async function assignTeacherAction(formData: FormData): Promise<ActionRes
       course_id: parsed.data.courseId,
       faculty_profile_id: parsed.data.facultyProfileId,
       semester_id: parsed.data.semesterId,
+      offering_type: parsed.data.offeringType,
     },
-    { onConflict: "course_id,faculty_profile_id,semester_id", ignoreDuplicates: true },
+    { onConflict: "course_id,faculty_profile_id,semester_id" },
   );
   if (error) return { error: error.message };
 

@@ -17,26 +17,35 @@ export default async function DepartmentCurriculumPage() {
     );
   }
 
-  const [{ data: programs }, { data: courses }, { data: teachers }, { data: semesters }] = await Promise.all([
+  const [{ data: programs }, { data: courses }, { data: teachers }, { data: departments }, { data: semesters }] = await Promise.all([
     supabase.from("programs").select("id, name, degree_level").eq("department_id", profile.departmentId),
     supabase.from("courses").select("id, code, title, credits, program_id").eq("department_id", profile.departmentId),
+    // College-wide, not department-scoped: a course can be taught by a
+    // teacher from another department (service courses — e.g. English,
+    // Islamic Studies, Pakistan Studies staff teaching a CS-curriculum
+    // course, exactly like the real timetable in §18). RLS only checks
+    // that the *course* is this department's own, never the teacher's.
     supabase
       .from("profiles")
-      .select("id, full_name")
-      .eq("department_id", profile.departmentId)
+      .select("id, full_name, department_id")
+      .eq("college_id", profile.collegeId ?? "")
       .in("role", ["faculty", "department", "coordinator", "controller"])
       .order("full_name"),
+    supabase.from("departments").select("id, name"),
     supabase.from("semesters").select("id, number").order("number"),
   ]);
 
   const courseIds = (courses ?? []).map((c) => c.id);
   const { data: courseFaculty } = courseIds.length
-    ? await supabase.from("course_faculty").select("course_id, faculty_profile_id, semester_id").in("course_id", courseIds)
+    ? await supabase.from("course_faculty").select("course_id, faculty_profile_id, semester_id, offering_type").in("course_id", courseIds)
     : { data: [] };
 
   const teacherNames = new Map((teachers ?? []).map((t) => [t.id, t.full_name]));
   const semesterNumbers = new Map((semesters ?? []).map((s) => [s.id, s.number]));
-  const assignmentsByCourse = new Map<string, { facultyProfileId: string; facultyName: string; semesterId: string; semesterNumber: number }[]>();
+  const assignmentsByCourse = new Map<
+    string,
+    { facultyProfileId: string; facultyName: string; semesterId: string; semesterNumber: number; offeringType: "fresh" | "repeat" }[]
+  >();
   for (const cf of courseFaculty ?? []) {
     const list = assignmentsByCourse.get(cf.course_id) ?? [];
     list.push({
@@ -44,6 +53,7 @@ export default async function DepartmentCurriculumPage() {
       facultyName: teacherNames.get(cf.faculty_profile_id) ?? "Unknown",
       semesterId: cf.semester_id,
       semesterNumber: semesterNumbers.get(cf.semester_id) ?? 0,
+      offeringType: cf.offering_type,
     });
     assignmentsByCourse.set(cf.course_id, list);
   }
@@ -60,7 +70,13 @@ export default async function DepartmentCurriculumPage() {
     }
   }
 
-  const teacherOptions = (teachers ?? []).map((t) => ({ id: t.id, name: t.full_name }));
+  const departmentNames = new Map((departments ?? []).map((d) => [d.id, d.name]));
+  const teacherOptions = (teachers ?? []).map((t) => ({
+    id: t.id,
+    name: t.full_name,
+    department: t.department_id ? (departmentNames.get(t.department_id) ?? "Unknown") : "No department",
+    isOwnDepartment: t.department_id === profile.departmentId,
+  }));
   const semesterOptions = (semesters ?? []).map((s) => ({ id: s.id, number: s.number }));
 
   const renderCourseTable = (list: typeof courses | undefined) => (

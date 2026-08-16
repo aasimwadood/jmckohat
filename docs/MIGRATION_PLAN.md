@@ -868,3 +868,17 @@ You asked for a batch-based picker instead of §27's list of all 8 semesters —
 **Live-verified** against real Computer Science data: of the 4 real batches, exactly the 2 expected ones qualify (FALL-2022 at semester 8, FALL-2023 at semester 6) while FALL-2024 (semester 4) and FALL-2025 (semester 2) are correctly excluded; confirmed picking a batch and enabling it writes to the correct semester's config row via the real HOD account, then cleaned up.
 
 `npx tsc --noEmit` and `npm run build` clean.
+
+## 30. Add Course now supports cross-department teachers and fresh/repeat offerings
+
+You asked for two additions to §28's Add Course: letting a course be taught by a teacher from another department (service courses — the real CS timetable already has English/Islamic Studies/Pakistan Studies staff teaching CS-curriculum courses), and marking whether a given offering is for the regular cohort or repeat students.
+
+**Cross-department teachers needed no RLS change** — `course_faculty_write_admin_or_department` (`0046`) already only checks that the *course* belongs to the caller's own department, never that the assigned `faculty_profile_id` does. The teacher picker itself was the only thing scoped to one department (`.eq("department_id", profile.departmentId)`); broadened to fetch every teaching-capable staff member college-wide, showing their home department next to their name whenever it isn't the caller's own (e.g. "Zabeeh Ullah *(English)*"), so an HOD can tell at a glance who's a guest instructor for a service course.
+
+**Fresh/repeat is a property of the offering, not the course** — migration `0057` adds `course_faculty.offering_type` (`'fresh' | 'repeat'`, default `'fresh'`), matching the real timetable data where the same course code was already offered twice in different semesters for different cohorts. The assignment picker gained a Fresh/Repeat selector; existing assignments show it inline ("Dr. Asif — Sem 6 *(Repeat)*"), and re-assigning the same (course, teacher, semester) triple now updates the offering type in place instead of silently no-op'ing.
+
+**A real infrastructure snag, not a code bug**: pushing the migration initially failed — this environment currently has no IPv6 route at all, and Supabase's direct-connection hostname (`db.*.supabase.co`) is IPv6-only. Worked around it using the Supavisor connection pooler instead (`aws-0-ap-south-1.pooler.supabase.com`, IPv4-reachable) rather than waiting on local network conditions to change — same database, different connection path.
+
+**Live-verified**, 6/6 checks: the real CS HOD (Dr Muhammad Abid) assigns a real Chemistry-department teacher (Abdul Rehman) to a CS course — cross-department, exactly the scenario asked for; that teacher's own `teaches_course()` now resolves `true` for it; the offering is stored as `fresh`, then correctly updated to `repeat` on re-assignment rather than being ignored; a different department's HOD is correctly rejected trying to touch the same assignment (RLS). All test data cleaned up, confirmed gone. Along the way, hit (and worked around, by filtering on `role` explicitly) two more real name collisions between an existing teacher and an unrelated student sharing the same name — the same class of coincidence as §24, not a bug, just something worth remembering whenever a lookup uses `full_name` alone.
+
+`npx tsc --noEmit` and `npm run build` clean.

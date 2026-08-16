@@ -8,9 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { assignTeacherAction, removeTeacherAssignmentAction } from "@/lib/actions/curriculum";
 
-type Teacher = { id: string; name: string };
+type Teacher = { id: string; name: string; department: string; isOwnDepartment: boolean };
 type Semester = { id: string; number: number };
-type Assignment = { facultyProfileId: string; facultyName: string; semesterId: string; semesterNumber: number };
+type Assignment = {
+  facultyProfileId: string;
+  facultyName: string;
+  semesterId: string;
+  semesterNumber: number;
+  offeringType: "fresh" | "repeat";
+};
 
 export function CourseTeachers({
   courseId,
@@ -25,6 +31,7 @@ export function CourseTeachers({
 }) {
   const [teacherId, setTeacherId] = useState("");
   const [semesterId, setSemesterId] = useState("");
+  const [offeringType, setOfferingType] = useState<"fresh" | "repeat">("fresh");
   const [isPending, startTransition] = useTransition();
 
   const onAssign = () => {
@@ -36,6 +43,7 @@ export function CourseTeachers({
     formData.set("courseId", courseId);
     formData.set("facultyProfileId", teacherId);
     formData.set("semesterId", semesterId);
+    formData.set("offeringType", offeringType);
     startTransition(async () => {
       const result = await assignTeacherAction(formData);
       if (result?.error) toast.error(result.error);
@@ -43,6 +51,7 @@ export function CourseTeachers({
         toast.success("Teacher assigned");
         setTeacherId("");
         setSemesterId("");
+        setOfferingType("fresh");
       }
     });
   };
@@ -65,6 +74,7 @@ export function CourseTeachers({
         {assignments.map((a) => (
           <Badge key={`${a.facultyProfileId}-${a.semesterId}`} variant="secondary" className="gap-1">
             {a.facultyName} — Sem {a.semesterNumber}
+            {a.offeringType === "repeat" && <span className="text-amber-600">(Repeat)</span>}
             <button
               type="button"
               onClick={() => onRemove(a.facultyProfileId, a.semesterId)}
@@ -79,13 +89,13 @@ export function CourseTeachers({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Select value={teacherId} onValueChange={setTeacherId} disabled={isPending}>
-          <SelectTrigger className="h-8 w-48">
-            <SelectValue placeholder="Teacher" />
+          <SelectTrigger className="h-8 w-60">
+            <SelectValue placeholder="Teacher (any department)" />
           </SelectTrigger>
           <SelectContent>
             {teachers.map((t) => (
               <SelectItem key={t.id} value={t.id}>
-                {t.name}
+                {t.name} {!t.isOwnDepartment && <span className="text-xs text-gray-500">({t.department})</span>}
               </SelectItem>
             ))}
           </SelectContent>
@@ -100,6 +110,15 @@ export function CourseTeachers({
                 Semester {s.number}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={offeringType} onValueChange={(v) => setOfferingType(v as "fresh" | "repeat")} disabled={isPending}>
+          <SelectTrigger className="h-8 w-28">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="fresh">Fresh</SelectItem>
+            <SelectItem value="repeat">Repeat</SelectItem>
           </SelectContent>
         </Select>
         <Button type="button" size="sm" variant="outline" onClick={onAssign} disabled={isPending}>
