@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/supabase/storage";
 import { CreateFypGroupDialog } from "./create-group-dialog";
 import { UploadProposalForm, UploadDeliverableForm } from "./upload-forms";
+import { WithdrawGroupButton } from "./withdraw-group-button";
 import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function StudentFypPage() {
@@ -150,8 +151,17 @@ export default async function StudentFypPage() {
 
       {activeGroup.status === "supervisor_pending" && (
         <Card>
-          <CardContent className="py-6 text-center text-gray-500">
-            Waiting for your supervisor to approve this group.
+          <CardContent className="space-y-3 py-6 text-center">
+            {activeGroup.supervisor_profile_id ? (
+              <p className="text-gray-500">Waiting for your supervisor to approve this group.</p>
+            ) : (
+              <>
+                <p className="text-gray-500">
+                  Your previous supervisor declined this group. You can withdraw and form a new one.
+                </p>
+                <WithdrawGroupButton groupId={activeGroup.id} />
+              </>
+            )}
           </CardContent>
         </Card>
       )}

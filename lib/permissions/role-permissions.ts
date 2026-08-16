@@ -38,6 +38,29 @@ export async function getRolePermissions(): Promise<RolePermission[]> {
   );
 }
 
+/**
+ * The resources a role can currently see, folding in any admin override
+ * from `role_permissions` over the RESOURCE_ROLES default — this is what
+ * actually makes the Role Management screen's toggles do something.
+ * Scoped to one role (not all of them, unlike getRolePermissions()) since
+ * that's all a single dashboard layout ever needs.
+ */
+export async function getAccessibleResources(role: UserRole): Promise<Set<Resource>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("role_permissions").select("resource, can_view").eq("role", role);
+
+  const overrides = new Map((data ?? []).map((row) => [row.resource as Resource, row.can_view]));
+  const resources = Object.keys(RESOURCE_ROLES) as Resource[];
+
+  return new Set(
+    resources.filter((resource) => {
+      const override = overrides.get(resource);
+      if (override !== undefined) return override;
+      return (RESOURCE_ROLES[resource] as readonly UserRole[]).includes(role);
+    }),
+  );
+}
+
 export async function setRolePermission(
   role: UserRole,
   resource: Resource,

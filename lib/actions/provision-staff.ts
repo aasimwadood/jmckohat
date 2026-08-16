@@ -47,12 +47,24 @@ export async function provisionStaffAction(formData: FormData): Promise<Provisio
   // profile for this new auth.users row — overwrite it with the intended
   // role/department here, using the service-role client so the column-level
   // restriction that blocks self-service role changes doesn't apply.
+  //
+  // college_id: department-tied roles derive it automatically from
+  // department_id via the sync_profile_college_id() trigger (fires on
+  // "update of department_id", a no-op here if departmentId is empty). For
+  // department-optional roles (admin/principal/controller/coordinator/
+  // administration), there's no department to derive it from, so it's set
+  // directly here to the *provisioning admin's own* college — an admin can
+  // only ever provision staff for their own college, not a picker, so
+  // there's no way to create a staff account scoped to the wrong one. This
+  // is what makes the college-scoped RLS from 0045-0047 actually correct
+  // going forward, not just for the pre-existing backfilled accounts.
   const { error: profileError } = await admin
     .from("profiles")
     .update({
       role,
       department_id: departmentId || null,
       phone: phone || null,
+      ...(departmentId ? {} : { college_id: caller.collegeId }),
     })
     .eq("id", invited.user.id);
 

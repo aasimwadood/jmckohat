@@ -2,6 +2,8 @@ import { DashboardLayout, type DashboardNavItem } from "@/components/layout/dash
 import { NotificationBell } from "@/components/features/realtime/notification-bell";
 import { requireRole } from "@/lib/auth/session";
 import { getInitialNotifications } from "@/lib/services/notifications";
+import { getAccessibleResources } from "@/lib/permissions/role-permissions";
+import { filterNavByAccess } from "@/lib/permissions/policies";
 
 // No "System Logs" entry here: audit_log is admin-only by RLS design
 // (0008_operations.sql), and its current content — staff provisioning,
@@ -9,22 +11,27 @@ import { getInitialNotifications } from "@/lib/services/notifications";
 // a page that RLS would just return empty for isn't a real feature.
 const NAVIGATION: DashboardNavItem[] = [
   { name: "Dashboard", icon: "LayoutDashboard", href: "/dashboard/administration" },
-  { name: "Fee Verification", icon: "UserPlus", href: "/dashboard/administration/admissions" },
+  { name: "Fee Verification", icon: "UserPlus", href: "/dashboard/administration/admissions", resource: "admissions" },
   { name: "Finance & Fees", icon: "DollarSign", href: "/dashboard/administration/finance" },
-  { name: "Library", icon: "BookOpen", href: "/dashboard/administration/library" },
-  { name: "Helpdesk", icon: "HelpCircle", href: "/dashboard/administration/helpdesk" },
-  { name: "Events & Facilities", icon: "Calendar", href: "/dashboard/administration/events" },
+  { name: "Library", icon: "BookOpen", href: "/dashboard/administration/library", resource: "library" },
+  { name: "Helpdesk", icon: "HelpCircle", href: "/dashboard/administration/helpdesk", resource: "supportTickets" },
+  { name: "Events & Facilities", icon: "Calendar", href: "/dashboard/administration/events", resource: "campusEvents" },
+  { name: "Contact Messages", icon: "MessageSquare", href: "/dashboard/administration/messages" },
 ];
 
 export default async function AdministrationLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireRole("administration");
-  const notifications = await getInitialNotifications(profile.id);
+  const [notifications, accessible] = await Promise.all([
+    getInitialNotifications(profile.id),
+    getAccessibleResources(profile.role),
+  ]);
+  const navigation = filterNavByAccess(NAVIGATION, accessible);
 
   return (
     <DashboardLayout
       userName={profile.fullName}
       userRole={profile.role}
-      navigation={NAVIGATION}
+      navigation={navigation}
       notificationBell={<NotificationBell userId={profile.id} initialNotifications={notifications} />}
     >
       {children}

@@ -63,6 +63,7 @@ type ProfilesRow = {
   department_id: string | null; avatar_path: string | null; current_semester_id: string | null;
   is_active: boolean; directorate_id: string | null; jmc_id: string | null; college_id: string | null;
   username: string; created_at: string; updated_at: string;
+  registration_number: string | null; father_name: string | null; program_id: string | null; batch: string | null;
 };
 
 // HED hierarchy: college_types / directorates / jmcs / colleges ------------
@@ -426,7 +427,7 @@ export type Database = {
   public: {
     Tables: {
       departments: Table<DepartmentsRow, "id" | "hod_profile_id" | "description" | "image_path" | "established_year" | "labs_count" | "created_at" | "updated_at">;
-      profiles: Table<ProfilesRow, "phone" | "department_id" | "avatar_path" | "current_semester_id" | "is_active" | "directorate_id" | "jmc_id" | "college_id" | "created_at" | "updated_at">;
+      profiles: Table<ProfilesRow, "phone" | "department_id" | "avatar_path" | "current_semester_id" | "is_active" | "directorate_id" | "jmc_id" | "college_id" | "created_at" | "updated_at" | "registration_number" | "father_name" | "program_id" | "batch">;
       programs: Table<ProgramsRow, "id" | "created_at">;
 
       college_types: Table<CollegeTypesRow, "id" | "created_at">;
@@ -536,6 +537,12 @@ export type Database = {
       respond_to_fyp_supervision: { Args: { p_group_id: string; p_approve: boolean }; Returns: FypGroupsRow };
       nominate_fyp_group: { Args: { p_group_id: string }; Returns: FypGroupsRow };
       archive_fyp_group: { Args: { p_group_id: string }; Returns: FypGroupsRow };
+      withdraw_fyp_group: { Args: { p_group_id: string }; Returns: FypGroupsRow };
+      review_fyp_proposal: {
+        Args: { p_proposal_id: string; p_approve: boolean; p_remarks?: string | null };
+        Returns: FypProposalsRow;
+      };
+      advance_fyp_stage: { Args: { p_group_id: string; p_target_status: FypGroupStatusEnum }; Returns: FypGroupsRow };
       current_user_role: { Args: Record<string, never>; Returns: UserRoleEnum };
       current_department_id: { Args: Record<string, never>; Returns: string };
       is_staff: { Args: Record<string, never>; Returns: boolean };

@@ -4,12 +4,34 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import type { ActionResult } from "@/lib/actions/auth";
-import type { FypEvaluationCriterionEnum } from "@/types/database.types";
+import type { FypEvaluationCriterionEnum, FypGroupStatusEnum } from "@/types/database.types";
 
 export async function respondToSupervisionAction(groupId: string, approve: boolean): Promise<ActionResult> {
   await requireRole("faculty");
   const supabase = await createClient();
   const { error } = await supabase.rpc("respond_to_fyp_supervision", { p_group_id: groupId, p_approve: approve });
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/faculty/fyp");
+  return {};
+}
+
+export async function reviewFypProposalAction(proposalId: string, approve: boolean, remarks?: string): Promise<ActionResult> {
+  await requireRole("faculty");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("review_fyp_proposal", {
+    p_proposal_id: proposalId,
+    p_approve: approve,
+    p_remarks: remarks || null,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/faculty/fyp");
+  return {};
+}
+
+export async function advanceFypStageAction(groupId: string, targetStatus: FypGroupStatusEnum): Promise<ActionResult> {
+  await requireRole("faculty");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("advance_fyp_stage", { p_group_id: groupId, p_target_status: targetStatus });
   if (error) return { error: error.message };
   revalidatePath("/dashboard/faculty/fyp");
   return {};
@@ -33,7 +55,10 @@ export async function submitEvaluationAction(formData: FormData): Promise<Action
     fyp_group_id: groupId,
     criterion: c.key,
     max_score: c.max,
-    score: Number(formData.get(c.key)) || 0,
+    // C4: clamp to [0, max] server-side — the <input max=...> the form uses
+    // is client-side only and trivially bypassed; the DB also has a
+    // score <= max_score check constraint as a second line of defense.
+    score: Math.min(Math.max(0, Number(formData.get(c.key)) || 0), c.max),
     evaluator_profile_id: profile.id,
   }));
 

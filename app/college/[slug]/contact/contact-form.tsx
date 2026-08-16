@@ -56,6 +56,10 @@ export function ContactForm() {
       <Card>
         <CardContent className="p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+            <div className="absolute -left-[9999px]" aria-hidden="true">
+              <Label htmlFor="website">Leave this field empty</Label>
+              <Input id="website" tabIndex={-1} autoComplete="off" {...register("website")} />
+            </div>
             <div>
               <Label htmlFor="name">Full Name *</Label>
               <Input id="name" placeholder="Enter your name" disabled={isPending} {...register("name")} />

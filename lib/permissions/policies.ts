@@ -49,3 +49,18 @@ export type Resource = keyof typeof RESOURCE_ROLES;
 export function canAccess(role: UserRole, resource: Resource): boolean {
   return (RESOURCE_ROLES[resource] as readonly UserRole[]).includes(role);
 }
+
+/**
+ * Filters a dashboard's nav items down to what the given resource set
+ * allows. Items with no `resource` tag (dashboards, org-hierarchy pages,
+ * anything with no entry in RESOURCE_ROLES) always pass through untouched —
+ * only tagged items are actually gated. `accessible` should come from
+ * `getAccessibleResources()` (role-permissions.ts), which already folds in
+ * any admin override from the `role_permissions` table.
+ */
+export function filterNavByAccess<T extends { resource?: Resource }>(
+  items: T[],
+  accessible: ReadonlySet<Resource>,
+): T[] {
+  return items.filter((item) => !item.resource || accessible.has(item.resource));
+}

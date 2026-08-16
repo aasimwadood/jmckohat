@@ -37,6 +37,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/lib/actions/auth";
 import { ROLE_LABELS, type UserRole } from "@/lib/permissions/roles";
+import type { Resource } from "@/lib/permissions/policies";
 
 // Nav icons are referenced by name, not by component reference — a Lucide
 // component itself is a function, and functions can't be passed from a
@@ -74,7 +75,7 @@ function NavIcon({ name, className }: { name: string; className?: string }) {
   return <Icon className={className} />;
 }
 
-export type DashboardNavItem = { name: string; icon: string; href: string };
+export type DashboardNavItem = { name: string; icon: string; href: string; resource?: Resource };
 
 export function DashboardLayout({
   userName,

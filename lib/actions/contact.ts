@@ -11,9 +11,14 @@ export async function sendContactMessageAction(formData: FormData): Promise<Acti
     phoneNumber: formData.get("phoneNumber"),
     subject: formData.get("subject"),
     body: formData.get("body"),
+    website: formData.get("website"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  if (parsed.data.website) {
+    return {};
   }
 
   const supabase = await createClient();

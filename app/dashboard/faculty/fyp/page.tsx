@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/supabase/storage";
 import { RespondToSupervisionButtons } from "./respond-buttons";
 import { EvaluationForm } from "./evaluation-form";
+import { ReviewProposalButtons } from "./review-proposal-buttons";
+import { AdvanceStageButton } from "./advance-stage-button";
 import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function FacultyFypPage() {
@@ -86,15 +88,21 @@ export default async function FacultyFypPage() {
                 </div>
                 <p className="mb-2 text-sm text-gray-500">{(membersByGroup.get(group.id) ?? []).join(", ")}</p>
                 {proposal && (
-                  <p className="mb-3 text-sm">
-                    Proposal:{" "}
-                    <a href={proposalUrls.get(group.id) ?? "#"} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                      View file
-                    </a>{" "}
-                    (status: {proposal.status})
-                  </p>
+                  <div className="mb-3 flex items-center justify-between gap-3 text-sm">
+                    <p>
+                      Proposal:{" "}
+                      <a href={proposalUrls.get(group.id) ?? "#"} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        View file
+                      </a>{" "}
+                      (status: {proposal.status})
+                    </p>
+                    {proposal.status === "submitted" && <ReviewProposalButtons proposalId={proposal.id} />}
+                  </div>
                 )}
-                <EvaluationForm groupId={group.id} alreadyEvaluated={evaluatedGroups.has(group.id)} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <AdvanceStageButton groupId={group.id} currentStatus={group.status} />
+                  <EvaluationForm groupId={group.id} alreadyEvaluated={evaluatedGroups.has(group.id)} />
+                </div>
               </div>
             );
           })}

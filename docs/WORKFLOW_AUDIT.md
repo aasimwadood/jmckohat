@@ -1,6 +1,13 @@
 # Workflow Audit — Findings Report
 
-**Status: findings only, no fixes applied.** Per your instruction, this audit is report-first — nothing here has been changed in the codebase or the live database. This document is the deliverable for spec Part 3 ("verify all existing workflows"). See `docs/MIGRATION_PLAN.md` §13 for how this was conducted.
+**Status: all 9 critical findings fixed and live-verified.** This document is the original findings report (spec Part 3, "verify all existing workflows") — see `docs/MIGRATION_PLAN.md` §14 for the fix log for each cluster, live-verified, the same way every other phase this session was.
+
+- [x] **C1 + Theme 2** (legacy-role college scoping across admissions/fee_payments/promotions/academic-core, `college_admin` visibility everywhere it was missing) — migrations `0045`–`0047`, live-verified. See MIGRATION_PLAN.md §14.
+- [x] **C7** (promotion RPC department-bypass) — fixed in the same pass as C1 (same file, same class of bug).
+- [x] **C2** (`enrollments` had no writer) — `lib/actions/enrollments.ts` + `/dashboard/department/enrollments`, live-verified.
+- [x] **C3 + C4 + C5 + C6** (FYP security gaps + stuck lifecycle) — migrations `0048`–`0049`, live-verified. See MIGRATION_PLAN.md §14.
+- [x] **C8** (Role Management screen had zero runtime effect) — `canAccess`/`filterNavByAccess` in `lib/permissions/policies.ts`, `getAccessibleResources()` in `lib/permissions/role-permissions.ts`, wired into 9 of the 12 dashboard layouts, live-verified. See MIGRATION_PLAN.md §14.
+- [x] **C9** (contact form had no spam guard, submissions had no inbox) — honeypot field + `/dashboard/administration/messages`, live-verified. See MIGRATION_PLAN.md §14.
 
 ## How this was done
 

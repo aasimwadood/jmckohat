@@ -37,6 +37,16 @@ export async function createFypGroupAction(formData: FormData): Promise<ActionRe
   return {};
 }
 
+export async function withdrawFypGroupAction(groupId: string): Promise<ActionResult> {
+  await requireRole("student");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("withdraw_fyp_group", { p_group_id: groupId });
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/student/fyp");
+  return {};
+}
+
 const MAX_SIZE_BYTES = 100 * 1024 * 1024;
 
 export async function uploadFypProposalAction(formData: FormData): Promise<ActionResult> {
