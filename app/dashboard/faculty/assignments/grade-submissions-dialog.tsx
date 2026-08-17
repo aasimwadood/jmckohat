@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CheckSquare, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,7 +11,15 @@ import { gradeSubmissionAction } from "@/lib/actions/assignments";
 
 type Submission = { id: string; studentName: string; grade: number | null; fileUrl: string | null };
 
-export function GradeSubmissionsDialog({ title, submissions }: { title: string; submissions: Submission[] }) {
+export function GradeSubmissionsDialog({
+  title,
+  maxMarks,
+  submissions,
+}: {
+  title: string;
+  maxMarks: number;
+  submissions: Submission[];
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -22,19 +31,21 @@ export function GradeSubmissionsDialog({ title, submissions }: { title: string; 
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Grade Assignment: {title}</DialogTitle>
-          <DialogDescription>{submissions.length} submission(s) received</DialogDescription>
+          <DialogDescription>
+            {submissions.length} submission(s) received · out of {maxMarks} marks
+          </DialogDescription>
         </DialogHeader>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Student</TableHead>
               <TableHead>File</TableHead>
-              <TableHead>Grade</TableHead>
+              <TableHead>Grade (/{maxMarks})</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {submissions.map((s) => (
-              <SubmissionRow key={s.id} submission={s} />
+              <SubmissionRow key={s.id} submission={s} maxMarks={maxMarks} />
             ))}
             {submissions.length === 0 && (
               <TableRow>
@@ -50,16 +61,22 @@ export function GradeSubmissionsDialog({ title, submissions }: { title: string; 
   );
 }
 
-function SubmissionRow({ submission }: { submission: Submission }) {
+function SubmissionRow({ submission, maxMarks }: { submission: Submission; maxMarks: number }) {
   const [grade, setGrade] = useState(submission.grade?.toString() ?? "");
   const [isPending, startTransition] = useTransition();
 
   const save = () => {
+    const numericGrade = Number(grade);
+    if (Number.isFinite(numericGrade) && numericGrade > maxMarks) {
+      toast.error(`Grade cannot exceed ${maxMarks} (max marks for this assignment)`);
+      return;
+    }
     const formData = new FormData();
     formData.set("submissionId", submission.id);
     formData.set("grade", grade);
     startTransition(async () => {
-      await gradeSubmissionAction(formData);
+      const result = await gradeSubmissionAction(formData);
+      if (result?.error) toast.error(result.error);
     });
   };
 
@@ -79,6 +96,8 @@ function SubmissionRow({ submission }: { submission: Submission }) {
         <div className="flex items-center gap-2">
           <Input
             type="number"
+            min={0}
+            max={maxMarks}
             value={grade}
             onChange={(e) => setGrade(e.target.value)}
             className="w-20"

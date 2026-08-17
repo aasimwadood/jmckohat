@@ -52,12 +52,15 @@ export default async function StudentAssignmentsPage() {
             <TableBody>
               {assignments.map((assignment) => {
                 const submission = submissionByAssignment.get(assignment.id);
+                const isPastDeadline = new Date(assignment.due_date) < new Date();
                 return (
                   <TableRow key={assignment.id}>
                     <TableCell>{courseLabels.get(assignment.course_id) ?? assignment.course_id}</TableCell>
                     <TableCell>{assignment.title}</TableCell>
                     <TableCell>{new Date(assignment.due_date).toLocaleDateString()}</TableCell>
-                    <TableCell className="capitalize">{submission ? "Submitted" : "Pending"}</TableCell>
+                    <TableCell className="capitalize">
+                      {submission ? "Submitted" : isPastDeadline ? "Missed" : "Pending"}
+                    </TableCell>
                     <TableCell>{submission?.grade ?? "—"}</TableCell>
                     <TableCell>
                       <SubmitAssignmentCell
@@ -65,6 +68,7 @@ export default async function StudentAssignmentsPage() {
                         title={assignment.title}
                         description={assignment.description}
                         submitted={!!submission}
+                        isPastDeadline={isPastDeadline}
                       />
                     </TableCell>
                   </TableRow>

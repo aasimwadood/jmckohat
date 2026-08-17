@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
-import { submitResultSchema } from "@/lib/validations/results";
+import { submitResultSchema, setFinalExamMarkSchema } from "@/lib/validations/results";
 import type { ActionResult } from "@/lib/actions/auth";
 
 export async function submitResultAction(formData: FormData): Promise<ActionResult> {
@@ -40,5 +40,45 @@ export async function submitResultAction(formData: FormData): Promise<ActionResu
 
   if (error) return { error: error.message };
   revalidatePath("/dashboard/faculty/marks");
+  return {};
+}
+
+/**
+ * Final Exam marks are issued by the affiliating university, not entered
+ * by college faculty — recording them is the Controller's job (the
+ * college's real point of contact with the university's examination
+ * system), independent of who teaches the course. Only ever sends
+ * `final_exam`; RLS (results_write_faculty_own_course, 0059) lets a
+ * controller touch any result row at their own college for exactly this
+ * reason, trusting this action not to touch the other columns.
+ */
+export async function setFinalExamMarkAction(formData: FormData): Promise<ActionResult> {
+  const profile = await requireRole("controller", "admin");
+
+  const parsed = setFinalExamMarkSchema.safeParse({
+    studentProfileId: formData.get("studentProfileId"),
+    courseId: formData.get("courseId"),
+    semesterId: formData.get("semesterId"),
+    finalExam: formData.get("finalExam"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("results").upsert(
+    {
+      student_profile_id: parsed.data.studentProfileId,
+      course_id: parsed.data.courseId,
+      semester_id: parsed.data.semesterId,
+      final_exam: parsed.data.finalExam,
+      submitted_by: profile.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "student_profile_id,course_id,semester_id" },
+  );
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/controller/results");
   return {};
 }

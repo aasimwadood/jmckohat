@@ -20,11 +20,13 @@ export function SubmitAssignmentCell({
   title,
   description,
   submitted,
+  isPastDeadline,
 }: {
   assignmentId: string;
   title: string;
   description: string | null;
   submitted: boolean;
+  isPastDeadline: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
@@ -42,6 +44,14 @@ export function SubmitAssignmentCell({
       }
     });
   };
+
+  if (!submitted && isPastDeadline) {
+    return (
+      <Button size="sm" variant="outline" disabled title="The deadline for this assignment has passed">
+        Deadline Passed
+      </Button>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

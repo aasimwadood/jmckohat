@@ -14,6 +14,7 @@ export async function createAssignmentAction(formData: FormData): Promise<Action
     title: formData.get("title"),
     description: formData.get("description"),
     dueDate: formData.get("dueDate"),
+    maxMarks: formData.get("maxMarks"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -26,6 +27,7 @@ export async function createAssignmentAction(formData: FormData): Promise<Action
     title: parsed.data.title,
     description: parsed.data.description || null,
     due_date: new Date(parsed.data.dueDate).toISOString(),
+    max_marks: parsed.data.maxMarks,
   });
 
   if (error) return { error: error.message };
@@ -48,6 +50,21 @@ export async function gradeSubmissionAction(formData: FormData): Promise<ActionR
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Friendly error ahead of the DB trigger (assignment_submissions_check_grade,
+  // 0059), which is the real backstop — this just avoids surfacing a raw
+  // Postgres exception message for the common case.
+  const { data: submission } = await supabase
+    .from("assignment_submissions")
+    .select("assignment_id")
+    .eq("id", parsed.data.submissionId)
+    .single();
+  if (submission) {
+    const { data: assignment } = await supabase.from("assignments").select("max_marks").eq("id", submission.assignment_id).single();
+    if (assignment && parsed.data.grade > assignment.max_marks) {
+      return { error: `Grade cannot exceed ${assignment.max_marks} (max marks for this assignment)` };
+    }
+  }
 
   const { error } = await supabase
     .from("assignment_submissions")
@@ -88,6 +105,17 @@ export async function submitAssignmentAction(formData: FormData): Promise<Action
   }
 
   const supabase = await createClient();
+
+  // Real gap found in the workflow audit: deadlines were never enforced
+  // anywhere — not DB, not RLS, not here, not even client-side disabling.
+  // A student could submit at any time after the due date with no
+  // indication. Checked here rather than a DB constraint since "now()"
+  // isn't something a CHECK can reference meaningfully at insert time.
+  const { data: assignment } = await supabase.from("assignments").select("due_date").eq("id", assignmentId).single();
+  if (assignment && new Date(assignment.due_date) < new Date()) {
+    return { error: "The deadline for this assignment has passed. Contact your instructor if you need an extension." };
+  }
+
   const path = `${assignmentId}/${profile.id}/${Date.now()}-${file.name}`;
 
   const { error: uploadError } = await supabase.storage

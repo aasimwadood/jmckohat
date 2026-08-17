@@ -135,7 +135,7 @@ type TimetableEntriesRow = {
 
 type AssignmentsRow = {
   id: string; course_id: string; faculty_profile_id: string; title: string;
-  description: string | null; due_date: string; created_at: string; updated_at: string;
+  description: string | null; due_date: string; max_marks: number; created_at: string; updated_at: string;
 };
 type AssignmentSubmissionsRow = {
   id: string; assignment_id: string; student_profile_id: string; file_path: string | null;
@@ -152,7 +152,7 @@ type ExamSchedulesRow = {
 };
 type ResultsRow = {
   id: string; student_profile_id: string; course_id: string; semester_id: string;
-  quiz1: number; quiz2: number; midterm: number; assignments_score: number; total: number;
+  quiz1: number; quiz2: number; midterm: number; assignments_score: number; final_exam: number; total: number;
   submitted_by: string | null; submitted_at: string; updated_at: string;
 };
 type AttendanceRow = {
@@ -467,11 +467,11 @@ export type Database = {
       enrollments: Table<EnrollmentsRow, "id" | "status" | "created_at">;
       timetable_entries: Table<TimetableEntriesRow, "id" | "faculty_profile_id" | "room" | "group_name" | "created_at" | "updated_at">;
 
-      assignments: Table<AssignmentsRow, "id" | "description" | "created_at" | "updated_at">;
+      assignments: Table<AssignmentsRow, "id" | "description" | "max_marks" | "created_at" | "updated_at">;
       assignment_submissions: Table<AssignmentSubmissionsRow, "id" | "file_path" | "submitted_at" | "grade" | "graded_at" | "graded_by">;
       course_materials: Table<CourseMaterialsRow, "id" | "description" | "type" | "created_at" | "updated_at">;
       exam_schedules: Table<ExamSchedulesRow, "id" | "room" | "created_by" | "created_at">;
-      results: Table<ResultsRow, "id" | "quiz1" | "quiz2" | "midterm" | "assignments_score" | "total" | "submitted_by" | "submitted_at" | "updated_at">;
+      results: Table<ResultsRow, "id" | "quiz1" | "quiz2" | "midterm" | "assignments_score" | "final_exam" | "total" | "submitted_by" | "submitted_at" | "updated_at">;
       attendance: Table<AttendanceRow, "id" | "marked_by" | "created_at">;
 
       admission_settings: Table<AdmissionSettingsRow, "is_enabled" | "enabled_by" | "enabled_at">;

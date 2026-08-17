@@ -67,6 +67,7 @@ export default async function FacultyAssignmentsPage() {
               <TableHead>Course</TableHead>
               <TableHead>Title</TableHead>
               <TableHead>Due Date</TableHead>
+              <TableHead>Max Marks</TableHead>
               <TableHead>Submissions</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>
@@ -79,12 +80,14 @@ export default async function FacultyAssignmentsPage() {
                   <TableCell>{courseLabels.get(assignment.course_id)}</TableCell>
                   <TableCell>{assignment.title}</TableCell>
                   <TableCell>{new Date(assignment.due_date).toLocaleDateString()}</TableCell>
+                  <TableCell>{assignment.max_marks}</TableCell>
                   <TableCell>
                     {subs.length}/{studentsPerCourse.get(assignment.course_id) ?? 0}
                   </TableCell>
                   <TableCell>
                     <GradeSubmissionsDialog
                       title={assignment.title}
+                      maxMarks={assignment.max_marks}
                       submissions={(subs ?? []).map((s) => ({
                         id: s.id,
                         studentName: studentNames.get(s.student_profile_id) ?? s.student_profile_id,
@@ -98,7 +101,7 @@ export default async function FacultyAssignmentsPage() {
             })}
             {(assignments ?? []).length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-gray-500">
+                <TableCell colSpan={6} className="py-8 text-center text-gray-500">
                   No assignments yet.
                 </TableCell>
               </TableRow>

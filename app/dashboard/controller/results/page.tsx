@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { letterGrade } from "@/lib/utils/grading";
+import { FinalExamCell } from "./final-exam-cell";
 
 export default async function ControllerResultsPage() {
   await requireRole("controller");
@@ -31,6 +32,8 @@ export default async function ControllerResultsPage() {
             <TableRow>
               <TableHead>Student</TableHead>
               <TableHead>Course</TableHead>
+              <TableHead>Continuous Assessment</TableHead>
+              <TableHead>Final Exam (University, /40)</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Grade</TableHead>
               <TableHead>Submitted</TableHead>
@@ -41,6 +44,15 @@ export default async function ControllerResultsPage() {
               <TableRow key={r.id}>
                 <TableCell>{studentNames.get(r.student_profile_id) ?? r.student_profile_id}</TableCell>
                 <TableCell>{courseLabels.get(r.course_id)}</TableCell>
+                <TableCell>{(r.quiz1 + r.quiz2 + r.midterm + r.assignments_score).toFixed(1)} / 60</TableCell>
+                <TableCell>
+                  <FinalExamCell
+                    studentProfileId={r.student_profile_id}
+                    courseId={r.course_id}
+                    semesterId={r.semester_id}
+                    finalExam={r.final_exam}
+                  />
+                </TableCell>
                 <TableCell>{r.total}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">{letterGrade(r.total)}</Badge>
@@ -50,7 +62,7 @@ export default async function ControllerResultsPage() {
             ))}
             {(!results || results.length === 0) && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-gray-500">
+                <TableCell colSpan={7} className="py-8 text-center text-gray-500">
                   No results submitted yet.
                 </TableCell>
               </TableRow>

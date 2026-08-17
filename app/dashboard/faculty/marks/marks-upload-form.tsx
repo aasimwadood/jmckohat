@@ -54,11 +54,11 @@ export function MarksUploadForm({ courses }: { courses: CourseOption[] }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Student</TableHead>
-                <TableHead className="w-24">Quiz 1</TableHead>
-                <TableHead className="w-24">Quiz 2</TableHead>
-                <TableHead className="w-24">Midterm</TableHead>
-                <TableHead className="w-24">Assignments</TableHead>
-                <TableHead className="w-24">Total</TableHead>
+                <TableHead className="w-24">Quiz 1 (/7.5)</TableHead>
+                <TableHead className="w-24">Quiz 2 (/7.5)</TableHead>
+                <TableHead className="w-24">Midterm (/30)</TableHead>
+                <TableHead className="w-24">Assignments (/15)</TableHead>
+                <TableHead className="w-24">Total (/60)</TableHead>
                 <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -101,11 +101,14 @@ function MarkRow({ entry, courseId, semesterId }: { entry: RosterEntry; courseId
     });
   };
 
-  const field = (key: keyof RosterEntry) => (
+  const field = (key: keyof RosterEntry, max: number) => (
     <Input
       type="number"
+      min={0}
+      max={max}
+      step="0.5"
       value={values[key]}
-      onChange={(e) => setValues((prev) => ({ ...prev, [key]: Number(e.target.value) || 0 }))}
+      onChange={(e) => setValues((prev) => ({ ...prev, [key]: Math.min(Number(e.target.value) || 0, max) }))}
       className="w-20"
       disabled={isPending}
     />
@@ -114,10 +117,10 @@ function MarkRow({ entry, courseId, semesterId }: { entry: RosterEntry; courseId
   return (
     <TableRow>
       <TableCell>{entry.studentName}</TableCell>
-      <TableCell>{field("quiz1")}</TableCell>
-      <TableCell>{field("quiz2")}</TableCell>
-      <TableCell>{field("midterm")}</TableCell>
-      <TableCell>{field("assignmentsScore")}</TableCell>
+      <TableCell>{field("quiz1", 7.5)}</TableCell>
+      <TableCell>{field("quiz2", 7.5)}</TableCell>
+      <TableCell>{field("midterm", 30)}</TableCell>
+      <TableCell>{field("assignmentsScore", 15)}</TableCell>
       <TableCell className="font-bold">{total}</TableCell>
       <TableCell>
         <Button size="sm" onClick={submit} disabled={isPending}>

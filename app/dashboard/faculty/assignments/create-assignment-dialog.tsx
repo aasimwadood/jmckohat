@@ -78,6 +78,10 @@ export function CreateAssignmentDialog({ courses }: { courses: Course[] }) {
             <Label htmlFor="dueDate">Due Date *</Label>
             <Input id="dueDate" name="dueDate" type="date" disabled={isPending} required />
           </div>
+          <div>
+            <Label htmlFor="maxMarks">Max Marks *</Label>
+            <Input id="maxMarks" name="maxMarks" type="number" min={1} step="0.5" defaultValue={100} disabled={isPending} required />
+          </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
               Cancel
