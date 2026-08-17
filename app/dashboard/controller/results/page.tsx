@@ -32,8 +32,9 @@ export default async function ControllerResultsPage() {
             <TableRow>
               <TableHead>Student</TableHead>
               <TableHead>Course</TableHead>
-              <TableHead>Continuous Assessment</TableHead>
-              <TableHead>Final Exam (University, /40)</TableHead>
+              <TableHead>Internal (/25)</TableHead>
+              <TableHead>Midterm (/25)</TableHead>
+              <TableHead>External Final (University, /50)</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Grade</TableHead>
               <TableHead>Submitted</TableHead>
@@ -44,7 +45,8 @@ export default async function ControllerResultsPage() {
               <TableRow key={r.id}>
                 <TableCell>{studentNames.get(r.student_profile_id) ?? r.student_profile_id}</TableCell>
                 <TableCell>{courseLabels.get(r.course_id)}</TableCell>
-                <TableCell>{(r.quiz1 + r.quiz2 + r.midterm + r.assignments_score).toFixed(1)} / 60</TableCell>
+                <TableCell>{(r.quiz1 + r.quiz2 + r.assignments_score + r.presentation).toFixed(1)}</TableCell>
+                <TableCell>{r.midterm.toFixed(1)}</TableCell>
                 <TableCell>
                   <FinalExamCell
                     studentProfileId={r.student_profile_id}
@@ -62,7 +64,7 @@ export default async function ControllerResultsPage() {
             ))}
             {(!results || results.length === 0) && (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-gray-500">
+                <TableCell colSpan={8} className="py-8 text-center text-gray-500">
                   No results submitted yet.
                 </TableCell>
               </TableRow>

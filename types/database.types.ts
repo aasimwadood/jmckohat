@@ -152,7 +152,8 @@ type ExamSchedulesRow = {
 };
 type ResultsRow = {
   id: string; student_profile_id: string; course_id: string; semester_id: string;
-  quiz1: number; quiz2: number; midterm: number; assignments_score: number; final_exam: number; total: number;
+  quiz1: number; quiz2: number; midterm: number; assignments_score: number; presentation: number;
+  final_exam: number; total: number;
   submitted_by: string | null; submitted_at: string; updated_at: string;
 };
 type AttendanceRow = {
@@ -471,7 +472,7 @@ export type Database = {
       assignment_submissions: Table<AssignmentSubmissionsRow, "id" | "file_path" | "submitted_at" | "grade" | "graded_at" | "graded_by">;
       course_materials: Table<CourseMaterialsRow, "id" | "description" | "type" | "created_at" | "updated_at">;
       exam_schedules: Table<ExamSchedulesRow, "id" | "room" | "created_by" | "created_at">;
-      results: Table<ResultsRow, "id" | "quiz1" | "quiz2" | "midterm" | "assignments_score" | "final_exam" | "total" | "submitted_by" | "submitted_at" | "updated_at">;
+      results: Table<ResultsRow, "id" | "quiz1" | "quiz2" | "midterm" | "assignments_score" | "presentation" | "final_exam" | "total" | "submitted_by" | "submitted_at" | "updated_at">;
       attendance: Table<AttendanceRow, "id" | "marked_by" | "created_at">;
 
       admission_settings: Table<AdmissionSettingsRow, "is_enabled" | "enabled_by" | "enabled_at">;

@@ -17,9 +17,19 @@ export async function submitResultAction(formData: FormData): Promise<ActionResu
     quiz2: formData.get("quiz2"),
     midterm: formData.get("midterm"),
     assignmentsScore: formData.get("assignmentsScore"),
+    presentation: formData.get("presentation"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  // Real constraint (results_internal_total_max, 0060): quiz1 + quiz2 +
+  // assignments_score + presentation <= 25 — "distribution depends on
+  // teacher" means no fixed per-field cap, only the pool total. Checked
+  // here too for a friendly error ahead of the raw DB constraint message.
+  const internalTotal = parsed.data.quiz1 + parsed.data.quiz2 + parsed.data.assignmentsScore + parsed.data.presentation;
+  if (internalTotal > 25) {
+    return { error: `Internal marks (Quizzes + Assignments + Presentation) total ${internalTotal}, which exceeds the 25-mark internal pool` };
   }
 
   const supabase = await createClient();
@@ -32,6 +42,7 @@ export async function submitResultAction(formData: FormData): Promise<ActionResu
       quiz2: parsed.data.quiz2,
       midterm: parsed.data.midterm,
       assignments_score: parsed.data.assignmentsScore,
+      presentation: parsed.data.presentation,
       submitted_by: profile.id,
       updated_at: new Date().toISOString(),
     },

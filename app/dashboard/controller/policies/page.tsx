@@ -53,7 +53,10 @@ export default function ControllerPoliciesPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-gray-600">
           <p>Minimum 75% attendance is required to sit for final examinations.</p>
-          <p>Assessment weightage: Quizzes 15% · Assignments 15% · Midterm 30% · Final 40%.</p>
+          <p>
+            Assessment weightage: Internal 25% (Quizzes, Assignments &amp; Presentation — distribution at the
+            instructor&apos;s discretion) · Midterm 25% · External Final (university) 50%.
+          </p>
         </CardContent>
       </Card>
 

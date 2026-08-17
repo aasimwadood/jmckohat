@@ -38,7 +38,7 @@ export function FinalExamCell({
       <Input
         type="number"
         min={0}
-        max={40}
+        max={50}
         step="0.5"
         value={value}
         onChange={(e) => setValue(e.target.value)}

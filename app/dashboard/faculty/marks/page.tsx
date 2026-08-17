@@ -49,6 +49,7 @@ export default async function FacultyMarksPage() {
           quiz2: existing?.quiz2 ?? 0,
           midterm: existing?.midterm ?? 0,
           assignmentsScore: existing?.assignments_score ?? 0,
+          presentation: existing?.presentation ?? 0,
         };
       }),
   }));
