@@ -35,6 +35,10 @@ export type MeritCategoryEnum =
   | "open_merit" | "local_area" | "special_merit" | "sports_quota"
   | "college_employee_child" | "minority_quota" | "disabled_person_quota";
 export type FeeStatusEnum = "pending" | "paid";
+export type FeeStructureStatusEnum = "draft" | "active" | "archived";
+export type FeeVoucherStatusEnum = "unpaid" | "verified" | "canceled";
+export type FeeImportStatusEnum = "uploaded" | "previewed" | "completed";
+export type FeeImportRowStatusEnum = "valid" | "invalid" | "matched" | "amount_mismatch" | "unmatched" | "duplicate_row";
 export type FypEvaluationCriterionEnum =
   | "innovation" | "technical_implementation" | "problem_solving"
   | "documentation" | "presentation_and_demo" | "teamwork";
@@ -195,6 +199,41 @@ type PromotionsRow = {
   status: PromotionStatusEnum; fee_receipt_number: string | null;
   fee_verified_by: string | null; fee_verified_at: string | null;
   created_at: string; updated_at: string;
+};
+
+type FeeStructuresRow = {
+  id: string; program_id: string; semester_number: number; academic_session_id: string;
+  status: FeeStructureStatusEnum; total_amount: number; created_by: string | null;
+  created_at: string; updated_at: string;
+};
+type FeeStructureComponentsRow = {
+  id: string; fee_structure_id: string; name: string; amount: number;
+  sort_order: number; created_at: string;
+};
+type FeeVouchersRow = {
+  id: string; voucher_number: string; promotion_id: string; student_profile_id: string;
+  fee_structure_id: string; total_amount: number; status: FeeVoucherStatusEnum; due_date: string;
+  generated_by: string | null; generated_at: string; verified_by: string | null;
+  verified_at: string | null; canceled_by: string | null; canceled_at: string | null;
+  cancel_reason: string | null; matched_bank_row_id: string | null;
+  created_at: string; updated_at: string;
+};
+type FeeVoucherComponentsRow = {
+  id: string; fee_voucher_id: string; name: string; amount: number; sort_order: number;
+};
+type FeeVoucherCountersRow = { academic_year: number; last_seq: number };
+type FeeBankImportsRow = {
+  id: string; college_id: string | null; uploaded_by: string | null; original_filename: string;
+  file_path: string | null; file_hash: string; status: FeeImportStatusEnum;
+  total_rows: number; valid_rows: number; invalid_rows: number; matched_rows: number;
+  mismatched_rows: number; unmatched_rows: number; duplicate_rows: number;
+  created_at: string; completed_at: string | null;
+};
+type FeeBankImportRowsRow = {
+  id: string; import_id: string; row_number: number; voucher_number: string | null;
+  student_identifier: string | null; amount: number | null; transaction_date: string | null;
+  transaction_reference: string | null; status: FeeImportRowStatusEnum;
+  error_message: string | null; matched_voucher_id: string | null; created_at: string;
 };
 
 type FypSemesterConfigRow = {
@@ -483,6 +522,14 @@ export type Database = {
       fee_payments: Table<FeePaymentsRow, "id" | "semester_id" | "status" | "receipt_number" | "verified_by" | "verified_at" | "due_date" | "created_at">;
       promotions: Table<PromotionsRow, "id" | "cgpa" | "academic_standing" | "max_courses" | "status" | "fee_receipt_number" | "fee_verified_by" | "fee_verified_at" | "created_at" | "updated_at">;
 
+      fee_structures: Table<FeeStructuresRow, "id" | "status" | "total_amount" | "created_by" | "created_at" | "updated_at">;
+      fee_structure_components: Table<FeeStructureComponentsRow, "id" | "sort_order" | "created_at">;
+      fee_vouchers: Table<FeeVouchersRow, "id" | "status" | "generated_by" | "generated_at" | "verified_by" | "verified_at" | "canceled_by" | "canceled_at" | "cancel_reason" | "matched_bank_row_id" | "created_at" | "updated_at">;
+      fee_voucher_components: Table<FeeVoucherComponentsRow, "id" | "sort_order">;
+      fee_voucher_counters: Table<FeeVoucherCountersRow, "last_seq">;
+      fee_bank_imports: Table<FeeBankImportsRow, "id" | "college_id" | "uploaded_by" | "file_path" | "status" | "total_rows" | "valid_rows" | "invalid_rows" | "matched_rows" | "mismatched_rows" | "unmatched_rows" | "duplicate_rows" | "created_at" | "completed_at">;
+      fee_bank_import_rows: Table<FeeBankImportRowsRow, "id" | "voucher_number" | "student_identifier" | "amount" | "transaction_date" | "transaction_reference" | "status" | "error_message" | "matched_voucher_id" | "created_at">;
+
       fyp_semester_config: Table<FypSemesterConfigRow, "proposal_deadline" | "mid_semester_deadline" | "final_deadline" | "supervisor_quota" | "max_members" | "is_enabled" | "created_by" | "created_at">;
       fyp_groups: Table<FypGroupsRow, "id" | "title" | "supervisor_profile_id" | "status" | "is_nominated" | "created_at" | "updated_at">;
       fyp_members: Table<FypMembersRow, "is_leader" | "joined_at">;
@@ -552,7 +599,19 @@ export type Database = {
       approve_admission_fee: { Args: { p_admission_id: string; p_receipt_number: string }; Returns: AdmissionsRow };
       cancel_admission: { Args: { p_admission_id: string; p_reason: string }; Returns: AdmissionsRow };
       register_for_promotion: { Args: { p_promotion_id: string; p_course_ids: string[] }; Returns: PromotionsRow };
-      verify_promotion_fee: { Args: { p_promotion_id: string; p_receipt_number: string }; Returns: PromotionsRow };
+      verify_promotion_fee: { Args: { p_promotion_id: string; p_receipt_number?: string | null }; Returns: PromotionsRow };
+      clear_promotion_fee: { Args: { p_promotion_id: string; p_voucher_id: string }; Returns: PromotionsRow };
+      manually_clear_promotion_fee: { Args: { p_promotion_id: string; p_reason: string }; Returns: PromotionsRow };
+      upsert_fee_structure: {
+        Args: { p_program_id: string; p_semester_number: number; p_academic_session_id: string; p_components: Json };
+        Returns: FeeStructuresRow;
+      };
+      generate_fee_voucher: { Args: { p_promotion_id: string }; Returns: FeeVouchersRow };
+      process_fee_bank_import: { Args: { p_import_id: string }; Returns: FeeBankImportsRow };
+      manually_resolve_fee_voucher: {
+        Args: { p_voucher_id: string; p_action: "verify" | "cancel"; p_reason: string };
+        Returns: FeeVouchersRow;
+      };
       create_fyp_group: {
         Args: {
           p_department_id: string; p_semester_id: string; p_member_ids: string[];
@@ -635,6 +694,10 @@ export type Database = {
       attendance_status: AttendanceStatusEnum;
       merit_category: MeritCategoryEnum;
       fee_status: FeeStatusEnum;
+      fee_structure_status: FeeStructureStatusEnum;
+      fee_voucher_status: FeeVoucherStatusEnum;
+      fee_import_status: FeeImportStatusEnum;
+      fee_import_row_status: FeeImportRowStatusEnum;
       org_status: OrgStatusEnum;
       recruitment_ad_status: RecruitmentAdStatusEnum;
       recruitment_application_status: RecruitmentApplicationStatusEnum;

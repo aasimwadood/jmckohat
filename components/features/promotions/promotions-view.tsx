@@ -11,11 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import {
-  startPromotionCycleAction,
-  registerPromotionCoursesAction,
-  verifyPromotionFeeAction,
-} from "@/lib/actions/promotions";
+import { startPromotionCycleAction, registerPromotionCoursesAction } from "@/lib/actions/promotions";
+import { finalizePromotionAction } from "@/lib/actions/fees";
 
 export type PromotionRow = {
   id: string;
@@ -28,6 +25,7 @@ export type PromotionRow = {
 };
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
+  fee_pending: "secondary",
   pending_registration: "secondary",
   registration_complete: "outline",
   promoted: "default",
@@ -97,10 +95,11 @@ export function PromotionsView({
                   </Badge>
                 </TableCell>
                 <TableCell>
+                  {p.status === "fee_pending" && <span className="text-sm text-gray-500">Awaiting fee payment</span>}
                   {p.status === "pending_registration" && canRegister && (
                     <RegisterCoursesDialog promotionId={p.id} maxCourses={p.maxCourses} courses={availableCourses} />
                   )}
-                  {p.status === "registration_complete" && canVerifyFee && <VerifyFeeDialog promotionId={p.id} />}
+                  {p.status === "registration_complete" && canVerifyFee && <FinalizePromotionDialog promotionId={p.id} />}
                 </TableCell>
               </TableRow>
             ))}
@@ -180,7 +179,12 @@ function RegisterCoursesDialog({
   );
 }
 
-function VerifyFeeDialog({ promotionId }: { promotionId: string }) {
+// Fee clearance already happened upstream (voucher generated + verified via
+// bank match or manual override) before a promotion can even reach
+// registration_complete — this step just finalizes the promotion once
+// courses are registered. Receipt number is an optional legacy reference,
+// not a fee check (see supabase/migrations/0062_promotion_fee_gating.sql).
+function FinalizePromotionDialog({ promotionId }: { promotionId: string }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -189,7 +193,7 @@ function VerifyFeeDialog({ promotionId }: { promotionId: string }) {
     setError("");
     formData.set("promotionId", promotionId);
     startTransition(async () => {
-      const result = await verifyPromotionFeeAction(formData);
+      const result = await finalizePromotionAction(formData);
       if (result?.error) setError(result.error);
       else setOpen(false);
     });
@@ -198,17 +202,17 @@ function VerifyFeeDialog({ promotionId }: { promotionId: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Button size="sm" onClick={() => setOpen(true)}>
-        Verify Fee
+        Finalize Promotion
       </Button>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Verify Promotion Fee</DialogTitle>
+          <DialogTitle>Finalize Promotion</DialogTitle>
         </DialogHeader>
         <form action={onSubmit} className="space-y-4">
           {error && <p className="text-sm text-destructive">{error}</p>}
           <div>
-            <Label htmlFor="receiptNumber">Receipt Number *</Label>
-            <Input id="receiptNumber" name="receiptNumber" disabled={isPending} required />
+            <Label htmlFor="receiptNumber">Reference Number (optional)</Label>
+            <Input id="receiptNumber" name="receiptNumber" disabled={isPending} />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>

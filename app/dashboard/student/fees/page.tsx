@@ -4,25 +4,79 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download } from "lucide-react";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { GenerateFeeButton } from "@/components/features/fees/generate-fee-button";
+import { VoucherStatusBadge } from "@/components/features/fees/voucher-status-badge";
 
 export default async function StudentFeesPage() {
   const profile = await requireRole("student");
   const supabase = await createClient();
 
-  const { data: fees } = await supabase
-    .from("fee_payments")
-    .select("*")
-    .eq("student_profile_id", profile.id)
-    .order("created_at", { ascending: false });
+  const [{ data: fees }, { data: promotions }, { data: vouchers }] = await Promise.all([
+    supabase.from("fee_payments").select("*").eq("student_profile_id", profile.id).order("created_at", { ascending: false }),
+    supabase
+      .from("promotions")
+      .select("id, status, to_semester_id")
+      .eq("student_profile_id", profile.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("fee_vouchers")
+      .select("*")
+      .eq("student_profile_id", profile.id)
+      .order("generated_at", { ascending: false }),
+  ]);
 
   const pending = (fees ?? []).filter((f) => f.status === "pending");
   const paid = (fees ?? []).filter((f) => f.status === "paid");
+
+  const voucherByPromotion = new Map((vouchers ?? []).map((v) => [v.promotion_id, v]));
+  const awaitingVoucher = (promotions ?? []).find((p) => p.status === "fee_pending" && !voucherByPromotion.has(p.id));
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Fee Status</CardTitle>
+          <CardTitle>Current Semester Fee</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {awaitingVoucher ? (
+            <div className="flex items-center justify-between rounded-lg bg-blue-50 p-4">
+              <div>
+                <p className="font-semibold text-gray-900">Fee voucher not generated yet</p>
+                <p className="text-sm text-gray-600">You&apos;ve been promoted to a new semester — generate your fee voucher to proceed.</p>
+              </div>
+              <GenerateFeeButton promotionId={awaitingVoucher.id} />
+            </div>
+          ) : vouchers && vouchers.length > 0 ? (
+            <div className="space-y-3">
+              {vouchers.map((v) => (
+                <div key={v.id} className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <p className="font-semibold text-gray-900">Voucher {v.voucher_number}</p>
+                    <p className="text-sm text-gray-600">
+                      Amount: PKR {v.total_amount.toLocaleString()} · Due {new Date(v.due_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <VoucherStatusBadge status={v.status} />
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={`/api/fees/vouchers/${v.id}/pdf`} target="_blank" rel="noopener noreferrer">
+                        <Download className="mr-1 h-4 w-4" />
+                        Voucher
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="py-8 text-center text-gray-500">No fee vouchers yet — one is generated automatically after each promotion.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Other Fees</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -38,7 +92,7 @@ export default async function StudentFeesPage() {
             ))}
             {pending.length === 0 && (
               <div className="rounded-lg bg-green-50 p-4 text-center">
-                <p className="text-green-800">All fees are currently up to date.</p>
+                <p className="text-green-800">All other fees are currently up to date.</p>
               </div>
             )}
           </div>

@@ -9,9 +9,10 @@ export default async function AdministrationFinancePage() {
   await requireRole("administration");
   const supabase = await createClient();
 
-  const [{ data: payments }, { data: scholarships }] = await Promise.all([
+  const [{ data: payments }, { data: scholarships }, { data: vouchers }] = await Promise.all([
     supabase.from("fee_payments").select("*").order("created_at", { ascending: false }).limit(100),
     supabase.from("scholarships").select("*").order("awarded_at", { ascending: false }),
+    supabase.from("fee_vouchers").select("status, total_amount"),
   ]);
 
   const studentIds = [
@@ -21,10 +22,12 @@ export default async function AdministrationFinancePage() {
     studentIds.length > 0 ? await supabase.from("profiles").select("id, full_name").in("id", studentIds) : { data: [] };
   const studentNames = new Map((students ?? []).map((s) => [s.id, s.full_name]));
 
+  // Promotions still awaiting fee (informational) or ready to finalize once
+  // courses are registered — administration only acts on the latter.
   const { data: promotions } = await supabase
     .from("promotions")
     .select("*")
-    .eq("status", "registration_complete")
+    .in("status", ["fee_pending", "registration_complete"])
     .order("created_at", { ascending: false });
   const promoStudentIds = [...new Set((promotions ?? []).map((p) => p.student_profile_id))];
   const { data: promoStudents } =
@@ -40,9 +43,46 @@ export default async function AdministrationFinancePage() {
     registeredCount: 0,
   }));
 
+  const voucherSummary = (vouchers ?? []).reduce(
+    (acc, v) => {
+      acc.count[v.status] = (acc.count[v.status] ?? 0) + 1;
+      acc.amount[v.status] = (acc.amount[v.status] ?? 0) + v.total_amount;
+      return acc;
+    },
+    { count: {} as Record<string, number>, amount: {} as Record<string, number> },
+  );
+
   return (
     <div className="space-y-6">
       <LiveRefresh table="promotions" />
+      <LiveRefresh table="fee_vouchers" />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Semester Fee Vouchers</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-lg border p-4">
+              <p className="text-sm text-gray-600">Pending Payment</p>
+              <p className="text-2xl font-bold text-gray-900">{voucherSummary.count.unpaid ?? 0}</p>
+              <p className="text-xs text-gray-500">PKR {(voucherSummary.amount.unpaid ?? 0).toLocaleString()}</p>
+            </div>
+            <div className="rounded-lg border p-4">
+              <p className="text-sm text-gray-600">Verified</p>
+              <p className="text-2xl font-bold text-gray-900">{voucherSummary.count.verified ?? 0}</p>
+              <p className="text-xs text-gray-500">PKR {(voucherSummary.amount.verified ?? 0).toLocaleString()}</p>
+            </div>
+            <div className="rounded-lg border p-4">
+              <p className="text-sm text-gray-600">Canceled</p>
+              <p className="text-2xl font-bold text-gray-900">{voucherSummary.count.canceled ?? 0}</p>
+            </div>
+          </div>
+          <p className="mt-3 text-sm text-gray-500">
+            Upload the daily bank Excel under Bank Import to match and verify pending vouchers.
+          </p>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Payments</CardTitle>
