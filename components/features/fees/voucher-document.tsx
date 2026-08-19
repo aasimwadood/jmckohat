@@ -40,7 +40,8 @@ export type VoucherPdfData = {
   registrationNumber: string | null;
   programName: string;
   departmentName: string;
-  semesterNumber: number;
+  /** "Semester 3" for BS-style programs, "First Year"/"Second Year" for Intermediate — pre-formatted by the caller. */
+  semesterLabel: string;
   academicSession: string;
   components: { name: string; amount: number }[];
   totalAmount: number;
@@ -109,7 +110,7 @@ export function VoucherDocument({ data }: { data: VoucherPdfData }) {
           <View style={styles.row}>
             <Text style={styles.label}>Semester / Session</Text>
             <Text style={styles.value}>
-              Semester {data.semesterNumber} — {data.academicSession}
+              {data.semesterLabel} — {data.academicSession}
             </Text>
           </View>
         </View>

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { VoucherDocument, type VoucherPdfData } from "@/components/features/fees/voucher-document";
+import { semesterLabel } from "@/lib/utils/degree-level";
 
 async function loadLogoDataUri(logoPath: string | null): Promise<string | null> {
   if (!logoPath) return null;
@@ -42,30 +43,78 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { data: voucher, error } = await supabase.from("fee_vouchers").select("*").eq("id", id).single();
   if (error || !voucher) return NextResponse.json({ error: "Voucher not found" }, { status: 404 });
 
-  const [{ data: components }, { data: promotion }, { data: student }] = await Promise.all([
-    supabase.from("fee_voucher_components").select("name, amount").eq("fee_voucher_id", voucher.id).order("sort_order"),
-    supabase.from("promotions").select("to_semester_id").eq("id", voucher.promotion_id).single(),
-    supabase
+  const { data: components } = await supabase
+    .from("fee_voucher_components")
+    .select("name, amount")
+    .eq("fee_voucher_id", voucher.id)
+    .order("sort_order");
+
+  // Two sources feed the same voucher shape: a promotion (existing/promoted
+  // BS student, identity via profiles) or a new admission (identity lives
+  // on the admission itself — no profiles row may exist yet).
+  let studentName: string;
+  let fatherName: string | null;
+  let registrationNumber: string | null;
+  let departmentId: string | null;
+  let programId: string | null;
+  let collegeId: string | null;
+  let semesterNumber: number;
+  let academicSessionId: string | null;
+
+  if (voucher.promotion_id) {
+    const { data: promotion } = await supabase.from("promotions").select("to_semester_id").eq("id", voucher.promotion_id).single();
+    const { data: student } = await supabase
       .from("profiles")
       .select("full_name, father_name, registration_number, department_id, program_id, college_id")
-      .eq("id", voucher.student_profile_id)
-      .single(),
-  ]);
-  if (!student) return NextResponse.json({ error: "Voucher not found" }, { status: 404 });
+      .eq("id", voucher.student_profile_id!)
+      .single();
+    if (!student) return NextResponse.json({ error: "Voucher not found" }, { status: 404 });
 
-  const [{ data: semester }, { data: department }, { data: program }, { data: college }] = await Promise.all([
-    promotion?.to_semester_id
-      ? supabase.from("semesters").select("number, academic_session_id").eq("id", promotion.to_semester_id).single()
-      : Promise.resolve({ data: null }),
-    student.department_id ? supabase.from("departments").select("name").eq("id", student.department_id).single() : Promise.resolve({ data: null }),
-    student.program_id ? supabase.from("programs").select("name").eq("id", student.program_id).single() : Promise.resolve({ data: null }),
-    student.college_id
-      ? supabase.from("colleges").select("name, address, contact_number, logo_path").eq("id", student.college_id).single()
+    const { data: semester } = promotion?.to_semester_id
+      ? await supabase.from("semesters").select("number, academic_session_id").eq("id", promotion.to_semester_id).single()
+      : { data: null };
+
+    studentName = student.full_name;
+    fatherName = student.father_name;
+    registrationNumber = student.registration_number;
+    departmentId = student.department_id;
+    programId = student.program_id;
+    collegeId = student.college_id;
+    semesterNumber = semester?.number ?? 0;
+    academicSessionId = semester?.academic_session_id ?? null;
+  } else {
+    const { data: admission } = await supabase
+      .from("admissions")
+      .select("full_name, father_name, temporary_id, registration_number, department_id, program_id")
+      .eq("id", voucher.admission_id!)
+      .single();
+    if (!admission) return NextResponse.json({ error: "Voucher not found" }, { status: 404 });
+
+    const { data: activeSession } = await supabase.from("academic_sessions").select("id").eq("is_active", true).single();
+    const { data: department } = admission.department_id
+      ? await supabase.from("departments").select("college_id").eq("id", admission.department_id).single()
+      : { data: null };
+
+    studentName = admission.full_name;
+    fatherName = admission.father_name;
+    registrationNumber = admission.registration_number ?? admission.temporary_id;
+    departmentId = admission.department_id;
+    programId = admission.program_id;
+    collegeId = department?.college_id ?? null;
+    semesterNumber = 1;
+    academicSessionId = activeSession?.id ?? null;
+  }
+
+  const [{ data: department }, { data: program }, { data: college }] = await Promise.all([
+    departmentId ? supabase.from("departments").select("name").eq("id", departmentId).single() : Promise.resolve({ data: null }),
+    programId ? supabase.from("programs").select("name, degree_level").eq("id", programId).single() : Promise.resolve({ data: null }),
+    collegeId
+      ? supabase.from("colleges").select("name, address, contact_number, logo_path").eq("id", collegeId).single()
       : Promise.resolve({ data: null }),
   ]);
 
-  const academicSession = semester?.academic_session_id
-    ? (await supabase.from("academic_sessions").select("label").eq("id", semester.academic_session_id).single()).data?.label
+  const academicSession = academicSessionId
+    ? (await supabase.from("academic_sessions").select("label").eq("id", academicSessionId).single()).data?.label
     : null;
 
   const logoDataUri = await loadLogoDataUri(college?.logo_path ?? "/images/logo.png");
@@ -79,12 +128,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     status: voucher.status,
     dueDate: new Date(voucher.due_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
     generatedAt: new Date(voucher.generated_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-    studentName: student.full_name,
-    fatherName: student.father_name,
-    registrationNumber: student.registration_number,
+    studentName,
+    fatherName,
+    registrationNumber,
     programName: program?.name ?? "—",
     departmentName: department?.name ?? "—",
-    semesterNumber: semester?.number ?? 0,
+    semesterLabel: semesterLabel(semesterNumber, program?.degree_level),
     academicSession: academicSession ?? "—",
     components: components ?? [],
     totalAmount: voucher.total_amount,

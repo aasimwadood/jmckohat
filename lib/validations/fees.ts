@@ -16,6 +16,15 @@ export const generateVoucherSchema = z.object({
   promotionId: z.string().uuid(),
 });
 
+export const generateAdmissionVoucherSchema = z.object({
+  admissionId: z.string().uuid(),
+});
+
+export const manuallyClearAdmissionFeeSchema = z.object({
+  admissionId: z.string().uuid(),
+  reason: z.string().trim().min(5, "Provide a brief reason (at least 5 characters)"),
+});
+
 export const manuallyClearPromotionFeeSchema = z.object({
   promotionId: z.string().uuid(),
   reason: z.string().trim().min(5, "Provide a brief reason (at least 5 characters)"),

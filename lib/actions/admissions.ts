@@ -51,6 +51,7 @@ export async function createAdmissionAction(formData: FormData): Promise<ActionR
     departmentId: formData.get("departmentId"),
     programId: formData.get("programId"),
     fullName: formData.get("fullName"),
+    fatherName: formData.get("fatherName"),
     cnic: formData.get("cnic"),
     contactNumber: formData.get("contactNumber"),
     email: formData.get("email"),
@@ -62,20 +63,38 @@ export async function createAdmissionAction(formData: FormData): Promise<ActionR
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("admissions").insert({
-    temporary_id: randomTemporaryId(),
-    department_id: parsed.data.departmentId,
-    program_id: parsed.data.programId || null,
-    full_name: parsed.data.fullName,
-    cnic: parsed.data.cnic || null,
-    contact_number: parsed.data.contactNumber || null,
-    email: parsed.data.email || null,
-    merit_category: parsed.data.meritCategory,
-    merit_number: parsed.data.meritNumber ?? null,
-    created_by: profile.id,
-  });
+  const { data: admission, error } = await supabase
+    .from("admissions")
+    .insert({
+      temporary_id: randomTemporaryId(),
+      department_id: parsed.data.departmentId,
+      program_id: parsed.data.programId || null,
+      full_name: parsed.data.fullName,
+      father_name: parsed.data.fatherName || null,
+      cnic: parsed.data.cnic || null,
+      contact_number: parsed.data.contactNumber || null,
+      email: parsed.data.email || null,
+      merit_category: parsed.data.meritCategory,
+      merit_number: parsed.data.meritNumber ?? null,
+      created_by: profile.id,
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
+
+  // Best-effort auto-generation (spec: "Immediately after ... automatically
+  // generate the fee voucher"). A program not yet configured with a fee
+  // structure is an expected, non-fatal condition here — the admission
+  // still gets created, and "Generate Fee" retries manually once the
+  // structure exists (see generateAdmissionFeeVoucherAction).
+  if (admission && parsed.data.programId) {
+    const { error: voucherError } = await supabase.rpc("generate_admission_fee_voucher", { p_admission_id: admission.id });
+    if (voucherError && !voucherError.message.includes("no_fee_structure_configured")) {
+      console.error("auto fee voucher generation failed:", voucherError.message);
+    }
+  }
+
   revalidatePath("/dashboard", "layout");
   return {};
 }

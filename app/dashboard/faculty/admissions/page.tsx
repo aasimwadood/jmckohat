@@ -36,6 +36,13 @@ export default async function FacultyAdmissionsPage() {
 
   const programNames = new Map((programs ?? []).map((p) => [p.id, p.name]));
 
+  const admissionIds = (admissions ?? []).map((a) => a.id);
+  const { data: vouchers } =
+    admissionIds.length > 0
+      ? await supabase.from("fee_vouchers").select("id, admission_id, voucher_number, status").in("admission_id", admissionIds)
+      : { data: [] };
+  const voucherByAdmission = new Map((vouchers ?? []).map((v) => [v.admission_id, v]));
+
   const rows: AdmissionRow[] = (admissions ?? []).map((a) => ({
     id: a.id,
     temporaryId: a.temporary_id,
@@ -51,6 +58,10 @@ export default async function FacultyAdmissionsPage() {
     feeReceiptNumber: a.fee_receipt_number,
     totalFee:
       a.registration_fee + a.crf_fee + a.admission_fee + a.tuition_fee + a.examination_fee + a.hostel_fee + a.transport_fee,
+    voucher: (() => {
+      const v = voucherByAdmission.get(a.id);
+      return v ? { id: v.id, voucherNumber: v.voucher_number, status: v.status } : null;
+    })(),
   }));
 
   return (

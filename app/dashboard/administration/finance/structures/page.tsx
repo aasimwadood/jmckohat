@@ -5,13 +5,14 @@ import { Plus, Pencil } from "lucide-react";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { FeeStructureForm } from "@/components/features/fees/fee-structure-form";
+import { semesterLabel } from "@/lib/utils/degree-level";
 
 export default async function FeeStructuresPage() {
   await requireRole("admin", "principal");
   const supabase = await createClient();
 
   const [{ data: programs }, { data: departments }, { data: academicSessions }, { data: structures }] = await Promise.all([
-    supabase.from("programs").select("id, name, department_id").order("name"),
+    supabase.from("programs").select("id, name, department_id, degree_level").order("name"),
     supabase.from("departments").select("id, name"),
     supabase.from("academic_sessions").select("id, label").order("label", { ascending: false }),
     supabase.from("fee_structures").select("*").order("created_at", { ascending: false }),
@@ -34,8 +35,10 @@ export default async function FeeStructuresPage() {
     id: p.id,
     name: p.name,
     departmentName: departmentName.get(p.department_id) ?? "—",
+    degreeLevel: p.degree_level,
   }));
   const programName = new Map(programOptions.map((p) => [p.id, `${p.name} (${p.departmentName})`]));
+  const programDegreeLevel = new Map(programOptions.map((p) => [p.id, p.degreeLevel]));
   const sessionLabel = new Map((academicSessions ?? []).map((s) => [s.id, s.label]));
 
   return (
@@ -75,7 +78,7 @@ export default async function FeeStructuresPage() {
                 return (
                   <TableRow key={s.id}>
                     <TableCell>{programName.get(s.program_id) ?? s.program_id}</TableCell>
-                    <TableCell>Semester {s.semester_number}</TableCell>
+                    <TableCell>{semesterLabel(s.semester_number, programDegreeLevel.get(s.program_id))}</TableCell>
                     <TableCell>{sessionLabel.get(s.academic_session_id) ?? "—"}</TableCell>
                     <TableCell className="text-sm text-gray-600">{components.map((c) => c.name).join(", ")}</TableCell>
                     <TableCell>PKR {s.total_amount.toLocaleString()}</TableCell>

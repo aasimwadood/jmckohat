@@ -14,6 +14,7 @@ export type AdmissionRow = {
   registrationNumber: string | null;
   feeReceiptNumber: string | null;
   totalFee: number;
+  voucher: { id: string; voucherNumber: string; status: "unpaid" | "verified" | "canceled" } | null;
 };
 
 export type AdmissionViewRole = "department" | "faculty" | "administration" | "admin";

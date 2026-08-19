@@ -14,6 +14,7 @@ export const createAdmissionSchema = z.object({
   departmentId: z.string().uuid(),
   programId: z.string().uuid().optional().or(z.literal("")),
   fullName: z.string().trim().min(1, "Full name is required").max(200),
+  fatherName: z.string().trim().max(200).optional().or(z.literal("")),
   cnic: z.string().trim().max(20).optional().or(z.literal("")),
   contactNumber: z.string().trim().max(30).optional().or(z.literal("")),
   email: z.string().trim().email("Enter a valid email").optional().or(z.literal("")),

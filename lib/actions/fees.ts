@@ -6,7 +6,9 @@ import { requireRole } from "@/lib/auth/session";
 import {
   upsertFeeStructureSchema,
   generateVoucherSchema,
+  generateAdmissionVoucherSchema,
   manuallyClearPromotionFeeSchema,
+  manuallyClearAdmissionFeeSchema,
   resolveVoucherSchema,
   finalizePromotionSchema,
 } from "@/lib/validations/fees";
@@ -67,6 +69,51 @@ export async function generateFeeVoucherAction(formData: FormData): Promise<Acti
   await logAudit(profile.id, "generate_fee_voucher", "fee_vouchers", data?.id, {
     promotionId: parsed.data.promotionId,
     voucherNumber: data?.voucher_number,
+  });
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
+
+export async function generateAdmissionFeeVoucherAction(formData: FormData): Promise<ActionResult> {
+  const profile = await requireRole("department", "faculty", "admin");
+
+  const parsed = generateAdmissionVoucherSchema.safeParse({
+    admissionId: formData.get("admissionId"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("generate_admission_fee_voucher", {
+    p_admission_id: parsed.data.admissionId,
+  });
+  if (error) return { error: error.message };
+
+  await logAudit(profile.id, "generate_admission_fee_voucher", "fee_vouchers", data?.id, {
+    admissionId: parsed.data.admissionId,
+    voucherNumber: data?.voucher_number,
+  });
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
+
+export async function manuallyClearAdmissionFeeAction(formData: FormData): Promise<ActionResult> {
+  const profile = await requireRole("administration", "admin");
+
+  const parsed = manuallyClearAdmissionFeeSchema.safeParse({
+    admissionId: formData.get("admissionId"),
+    reason: formData.get("reason"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("manually_clear_admission_fee", {
+    p_admission_id: parsed.data.admissionId,
+    p_reason: parsed.data.reason,
+  });
+  if (error) return { error: error.message };
+
+  await logAudit(profile.id, "manually_clear_admission_fee", "admissions", parsed.data.admissionId, {
+    reason: parsed.data.reason,
   });
   revalidatePath("/dashboard", "layout");
   return {};

@@ -21,8 +21,15 @@ import {
   uploadAdmissionDocumentAction,
   type AdmissionDocumentRow,
 } from "@/lib/actions/admissions";
+import { generateAdmissionFeeVoucherAction } from "@/lib/actions/fees";
 import { MERIT_CATEGORIES } from "@/lib/validations/admissions";
 import type { AdmissionRow, AdmissionViewRole } from "./types";
+
+const VOUCHER_STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive"> = {
+  unpaid: "secondary",
+  verified: "default",
+  canceled: "destructive",
+};
 
 const MERIT_LABELS: Record<string, string> = {
   open_merit: "Open Merit",
@@ -90,6 +97,7 @@ export function AdmissionsView({
                 <TableHead>Merit Category</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Reg. #</TableHead>
+                <TableHead>Fee Voucher</TableHead>
                 <TableHead>Documents</TableHead>
                 <TableHead>Action</TableHead>
               </TableRow>
@@ -109,6 +117,9 @@ export function AdmissionsView({
                   </TableCell>
                   <TableCell>{admission.registrationNumber ?? "—"}</TableCell>
                   <TableCell>
+                    <FeeVoucherCell admission={admission} canGenerate={canAddStudent} />
+                  </TableCell>
+                  <TableCell>
                     <DocumentsDialog admission={admission} canUpload={canUploadDocuments} />
                   </TableCell>
                   <TableCell>
@@ -122,7 +133,7 @@ export function AdmissionsView({
               ))}
               {admissions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-gray-500">
+                  <TableCell colSpan={7} className="py-8 text-center text-gray-500">
                     No admission records yet.
                   </TableCell>
                 </TableRow>
@@ -208,6 +219,10 @@ function AddStudentDialog({ departmentId, programs }: { departmentId: string; pr
             <Input id="fullName" name="fullName" disabled={isPending} required />
           </div>
           <div>
+            <Label htmlFor="fatherName">Father&apos;s Name</Label>
+            <Input id="fatherName" name="fatherName" disabled={isPending} />
+          </div>
+          <div>
             <Label htmlFor="cnic">CNIC</Label>
             <Input id="cnic" name="cnic" disabled={isPending} />
           </div>
@@ -268,6 +283,46 @@ function AddStudentDialog({ departmentId, programs }: { departmentId: string; pr
       </DialogContent>
     </Dialog>
   );
+}
+
+function FeeVoucherCell({ admission, canGenerate }: { admission: AdmissionRow; canGenerate: boolean }) {
+  const [isPending, startTransition] = useTransition();
+
+  const generate = () => {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("admissionId", admission.id);
+      const result = await generateAdmissionFeeVoucherAction(formData);
+      if (result?.error) toast.error(result.error);
+      else toast.success("Fee voucher generated");
+    });
+  };
+
+  if (admission.voucher) {
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant={VOUCHER_STATUS_VARIANT[admission.voucher.status]} className="capitalize">
+          {admission.voucher.status}
+        </Badge>
+        <Button size="sm" variant="outline" asChild>
+          <a href={`/api/fees/vouchers/${admission.voucher.id}/pdf`} target="_blank" rel="noopener noreferrer">
+            <Download className="h-3 w-3" />
+          </a>
+        </Button>
+      </div>
+    );
+  }
+
+  if (admission.status === "pending" && canGenerate) {
+    return (
+      <Button size="sm" variant="outline" onClick={generate} disabled={isPending}>
+        {isPending && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+        Generate Fee
+      </Button>
+    );
+  }
+
+  return <span className="text-sm text-gray-400">—</span>;
 }
 
 function RowActions({

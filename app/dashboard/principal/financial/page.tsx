@@ -34,6 +34,7 @@ export default async function PrincipalFinancialPage() {
   }
   const vouchersByDept = new Map<string, { verified: number; outstanding: number }>();
   for (const v of vouchers ?? []) {
+    if (!v.student_profile_id) continue; // admission-linked vouchers before an account is created
     const deptId = studentDept.get(v.student_profile_id);
     if (!deptId) continue;
     const entry = vouchersByDept.get(deptId) ?? { verified: 0, outstanding: 0 };

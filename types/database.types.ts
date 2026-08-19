@@ -170,7 +170,7 @@ type AdmissionSettingsRow = {
   enabled_by: string | null; enabled_at: string | null;
 };
 type AdmissionsRow = {
-  id: string; temporary_id: string; full_name: string; cnic: string | null;
+  id: string; temporary_id: string; full_name: string; father_name: string | null; cnic: string | null;
   contact_number: string | null; email: string | null; department_id: string;
   program_id: string | null; merit_category: MeritCategoryEnum; merit_number: number | null;
   status: AdmissionStatusEnum; registration_fee: number; crf_fee: number; admission_fee: number;
@@ -211,8 +211,9 @@ type FeeStructureComponentsRow = {
   sort_order: number; created_at: string;
 };
 type FeeVouchersRow = {
-  id: string; voucher_number: string; promotion_id: string; student_profile_id: string;
-  fee_structure_id: string; total_amount: number; status: FeeVoucherStatusEnum; due_date: string;
+  id: string; voucher_number: string; promotion_id: string | null; admission_id: string | null;
+  student_profile_id: string | null; fee_structure_id: string; total_amount: number;
+  status: FeeVoucherStatusEnum; due_date: string;
   generated_by: string | null; generated_at: string; verified_by: string | null;
   verified_at: string | null; canceled_by: string | null; canceled_at: string | null;
   cancel_reason: string | null; matched_bank_row_id: string | null;
@@ -515,7 +516,7 @@ export type Database = {
       attendance: Table<AttendanceRow, "id" | "marked_by" | "created_at">;
 
       admission_settings: Table<AdmissionSettingsRow, "is_enabled" | "enabled_by" | "enabled_at">;
-      admissions: Table<AdmissionsRow, "id" | "cnic" | "contact_number" | "email" | "merit_category" | "merit_number" | "status" | "registration_fee" | "crf_fee" | "admission_fee" | "tuition_fee" | "examination_fee" | "hostel_fee" | "transport_fee" | "fee_receipt_number" | "fee_paid_at" | "fee_approved_by" | "registration_number" | "semester_id" | "approved_by" | "approved_at" | "canceled_by" | "canceled_at" | "cancel_reason" | "student_profile_id" | "created_at" | "updated_at">;
+      admissions: Table<AdmissionsRow, "id" | "father_name" | "cnic" | "contact_number" | "email" | "merit_category" | "merit_number" | "status" | "registration_fee" | "crf_fee" | "admission_fee" | "tuition_fee" | "examination_fee" | "hostel_fee" | "transport_fee" | "fee_receipt_number" | "fee_paid_at" | "fee_approved_by" | "registration_number" | "semester_id" | "approved_by" | "approved_at" | "canceled_by" | "canceled_at" | "cancel_reason" | "student_profile_id" | "created_at" | "updated_at">;
       registration_counters: Table<RegistrationCountersRow, "last_seq">;
       admission_documents: Table<AdmissionDocumentsRow, "id" | "uploaded_by" | "uploaded_at">;
 
@@ -524,7 +525,7 @@ export type Database = {
 
       fee_structures: Table<FeeStructuresRow, "id" | "status" | "total_amount" | "created_by" | "created_at" | "updated_at">;
       fee_structure_components: Table<FeeStructureComponentsRow, "id" | "sort_order" | "created_at">;
-      fee_vouchers: Table<FeeVouchersRow, "id" | "status" | "generated_by" | "generated_at" | "verified_by" | "verified_at" | "canceled_by" | "canceled_at" | "cancel_reason" | "matched_bank_row_id" | "created_at" | "updated_at">;
+      fee_vouchers: Table<FeeVouchersRow, "id" | "promotion_id" | "admission_id" | "student_profile_id" | "status" | "generated_by" | "generated_at" | "verified_by" | "verified_at" | "canceled_by" | "canceled_at" | "cancel_reason" | "matched_bank_row_id" | "created_at" | "updated_at">;
       fee_voucher_components: Table<FeeVoucherComponentsRow, "id" | "sort_order">;
       fee_voucher_counters: Table<FeeVoucherCountersRow, "last_seq">;
       fee_bank_imports: Table<FeeBankImportsRow, "id" | "college_id" | "uploaded_by" | "file_path" | "status" | "total_rows" | "valid_rows" | "invalid_rows" | "matched_rows" | "mismatched_rows" | "unmatched_rows" | "duplicate_rows" | "created_at" | "completed_at">;
@@ -607,6 +608,9 @@ export type Database = {
         Returns: FeeStructuresRow;
       };
       generate_fee_voucher: { Args: { p_promotion_id: string }; Returns: FeeVouchersRow };
+      generate_admission_fee_voucher: { Args: { p_admission_id: string }; Returns: FeeVouchersRow };
+      clear_admission_fee: { Args: { p_admission_id: string; p_voucher_id: string }; Returns: AdmissionsRow };
+      manually_clear_admission_fee: { Args: { p_admission_id: string; p_reason: string }; Returns: AdmissionsRow };
       process_fee_bank_import: { Args: { p_import_id: string }; Returns: FeeBankImportsRow };
       manually_resolve_fee_voucher: {
         Args: { p_voucher_id: string; p_action: "verify" | "cancel"; p_reason: string };

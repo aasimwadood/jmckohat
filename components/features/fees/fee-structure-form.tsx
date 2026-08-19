@@ -9,12 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { upsertFeeStructureAction } from "@/lib/actions/fees";
+import { maxSemesterNumberFor, semesterLabel } from "@/lib/utils/degree-level";
 
-type Program = { id: string; name: string; departmentName: string };
+type Program = { id: string; name: string; departmentName: string; degreeLevel: string };
 type AcademicSession = { id: string; label: string };
 type Component = { name: string; amount: string };
-
-const SEMESTER_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export function FeeStructureForm({
   programs,
@@ -41,6 +40,16 @@ export function FeeStructureForm({
   const [isPending, startTransition] = useTransition();
 
   const total = components.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
+  const selectedProgram = programs.find((p) => p.id === programId);
+  const availableSemesterNumbers = Array.from({ length: maxSemesterNumberFor(selectedProgram?.degreeLevel) }, (_, i) => i + 1);
+
+  const onProgramChange = (nextProgramId: string) => {
+    setProgramId(nextProgramId);
+    const nextProgram = programs.find((p) => p.id === nextProgramId);
+    const maxNumber = maxSemesterNumberFor(nextProgram?.degreeLevel);
+    if (semesterNumber && Number(semesterNumber) > maxNumber) setSemesterNumber("");
+  };
 
   const updateComponent = (i: number, field: keyof Component, value: string) => {
     setComponents((prev) => prev.map((c, idx) => (idx === i ? { ...c, [field]: value } : c)));
@@ -86,7 +95,7 @@ export function FeeStructureForm({
         <div className="space-y-4">
           <div>
             <Label>Program</Label>
-            <Select value={programId} onValueChange={setProgramId} disabled={isPending}>
+            <Select value={programId} onValueChange={onProgramChange} disabled={isPending}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a program" />
               </SelectTrigger>
@@ -102,15 +111,15 @@ export function FeeStructureForm({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Semester Number</Label>
-              <Select value={semesterNumber} onValueChange={setSemesterNumber} disabled={isPending}>
+              <Label>{selectedProgram && maxSemesterNumberFor(selectedProgram.degreeLevel) === 2 ? "Year" : "Semester Number"}</Label>
+              <Select value={semesterNumber} onValueChange={setSemesterNumber} disabled={isPending || !programId}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Semester" />
+                  <SelectValue placeholder={programId ? "Select" : "Select a program first"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {SEMESTER_NUMBERS.map((n) => (
+                  {availableSemesterNumbers.map((n) => (
                     <SelectItem key={n} value={String(n)}>
-                      Semester {n}
+                      {semesterLabel(n, selectedProgram?.degreeLevel)}
                     </SelectItem>
                   ))}
                 </SelectContent>

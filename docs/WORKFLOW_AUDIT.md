@@ -1,6 +1,6 @@
 # Workflow Audit — Findings Report
 
-**Status: all 9 critical findings fixed and live-verified.** This document is the original findings report (spec Part 3, "verify all existing workflows") — see `docs/MIGRATION_PLAN.md` §14 for the fix log for each cluster, live-verified, the same way every other phase this session was.
+**Status: all 10 critical findings fixed and live-verified** (the original 9, plus C10 found post-hoc during later feature work). This document is the original findings report (spec Part 3, "verify all existing workflows") — see `docs/MIGRATION_PLAN.md` §14 for the fix log for each cluster, live-verified, the same way every other phase this session was.
 
 - [x] **C1 + Theme 2** (legacy-role college scoping across admissions/fee_payments/promotions/academic-core, `college_admin` visibility everywhere it was missing) — migrations `0045`–`0047`, live-verified. See MIGRATION_PLAN.md §14.
 - [x] **C7** (promotion RPC department-bypass) — fixed in the same pass as C1 (same file, same class of bug).
@@ -8,6 +8,7 @@
 - [x] **C3 + C4 + C5 + C6** (FYP security gaps + stuck lifecycle) — migrations `0048`–`0049`, live-verified. See MIGRATION_PLAN.md §14.
 - [x] **C8** (Role Management screen had zero runtime effect) — `canAccess`/`filterNavByAccess` in `lib/permissions/policies.ts`, `getAccessibleResources()` in `lib/permissions/role-permissions.ts`, wired into 9 of the 12 dashboard layouts, live-verified. See MIGRATION_PLAN.md §14.
 - [x] **C9** (contact form had no spam guard, submissions had no inbox) — honeypot field + `/dashboard/administration/messages`, live-verified. See MIGRATION_PLAN.md §14.
+- [x] **C10** (`admit_student()` ambiguous-column bug, found post-hoc during Fee Management Phase 2, not part of the original 9) — migration `0068`, live-verified. See MIGRATION_PLAN.md §36.
 
 ## How this was done
 
@@ -74,6 +75,7 @@ A recurring pattern: `gradeSubmissionAction`, `deleteMaterialAction`, `deleteTim
 | C7 | `register_for_promotion()` RPC doesn't replicate the RLS department-scoping it's supposed to mirror | `supabase/migrations/0006_promotions_and_fees.sql:52-91` (security definer, role-only check) | Any `department`/`faculty` account can register courses on another department's student's promotion via a direct RPC call |
 | C8 | `role_permissions` / the "Role Management" admin screen has zero runtime effect | `lib/permissions/policies.ts:10-15,49-51` (`canAccess()` has no callers anywhere); `app/dashboard/admin/roles/page.tsx` | An admin can toggle a permission off and nothing changes — actively misleading, not just unused |
 | C9 | Public contact form has no spam protection and is never read by anyone | `lib/actions/contact.ts`; RLS `messages_insert_anyone` (`0008_operations.sql:320-321`); no admin inbox page exists anywhere | Trivially floodable; submissions currently go nowhere a human will ever see them |
+| C10 | `admit_student()`'s semester lookup selects an unqualified `id` where both joined tables (`semesters`, `academic_sessions`) have one — genuinely ambiguous, Postgres rejects it outright | `supabase/migrations/0005_admissions.sql:135`, carried unchanged through `0047`'s entire college-scoping fix pass | The RPC behind "Confirm Admission" has never actually succeeded, for any department, ever — not found by this audit's original pass, only surfaced when Fee Management Phase 2 needed to call it for real. Fixed in `0068`, see MIGRATION_PLAN.md §36 |
 
 ## Functional gaps (real, but not security issues)
 

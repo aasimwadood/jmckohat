@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { registerCoursesSchema } from "@/lib/validations/promotions";
 import type { ActionResult } from "@/lib/actions/auth";
+import { maxSemesterNumberFor } from "@/lib/utils/degree-level";
 
 /**
  * Creates a promotion row (status fee_pending) for every admitted student
@@ -22,7 +23,7 @@ export async function startPromotionCycleAction(departmentId: string): Promise<A
 
   const { data: students } = await supabase
     .from("profiles")
-    .select("id, current_semester_id")
+    .select("id, current_semester_id, program_id")
     .eq("department_id", departmentId)
     .eq("role", "student")
     .not("current_semester_id", "is", null);
@@ -36,12 +37,22 @@ export async function startPromotionCycleAction(departmentId: string): Promise<A
     .in("id", semesterIds);
   const semesterById = new Map((semesters ?? []).map((s) => [s.id, s]));
 
+  // Intermediate programs only ever span 2 years (First/Second Year, reusing
+  // semesters 1-2) — the cap below must NOT default to the BS 8-semester
+  // ceiling for them, or an Intermediate student would keep "promoting"
+  // into semesters that don't correspond to a real Intermediate year.
+  const programIds = [...new Set(students.map((s) => s.program_id).filter((id): id is string => !!id))];
+  const { data: programs } =
+    programIds.length > 0 ? await supabase.from("programs").select("id, degree_level").in("id", programIds) : { data: [] };
+  const degreeLevelByProgram = new Map((programs ?? []).map((p) => [p.id, p.degree_level]));
+
   const nextSemesterCache = new Map<string, string | null>();
-  async function findNextSemesterId(currentSemesterId: string): Promise<string | null> {
-    if (nextSemesterCache.has(currentSemesterId)) return nextSemesterCache.get(currentSemesterId)!;
+  async function findNextSemesterId(currentSemesterId: string, maxSemesterNumber: number): Promise<string | null> {
+    const cacheKey = `${currentSemesterId}:${maxSemesterNumber}`;
+    if (nextSemesterCache.has(cacheKey)) return nextSemesterCache.get(cacheKey)!;
     const current = semesterById.get(currentSemesterId);
-    if (!current || current.number >= 8) {
-      nextSemesterCache.set(currentSemesterId, null);
+    if (!current || current.number >= maxSemesterNumber) {
+      nextSemesterCache.set(cacheKey, null);
       return null;
     }
     const { data: next } = await supabase
@@ -50,13 +61,14 @@ export async function startPromotionCycleAction(departmentId: string): Promise<A
       .eq("academic_session_id", current.academic_session_id)
       .eq("number", current.number + 1)
       .maybeSingle();
-    nextSemesterCache.set(currentSemesterId, next?.id ?? null);
+    nextSemesterCache.set(cacheKey, next?.id ?? null);
     return next?.id ?? null;
   }
 
   const rows: { student_profile_id: string; from_semester_id: string; to_semester_id: string; status: "fee_pending" }[] = [];
   for (const student of students) {
-    const nextId = await findNextSemesterId(student.current_semester_id!);
+    const maxSemesterNumber = maxSemesterNumberFor(student.program_id ? degreeLevelByProgram.get(student.program_id) : null);
+    const nextId = await findNextSemesterId(student.current_semester_id!, maxSemesterNumber);
     if (nextId) {
       rows.push({
         student_profile_id: student.id,
