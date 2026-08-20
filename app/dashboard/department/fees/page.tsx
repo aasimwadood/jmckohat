@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { VoucherStatusBadge } from "@/components/features/fees/voucher-status-badge";
 import { LiveRefresh } from "@/components/features/realtime/live-refresh";
+import { ShiftFilter } from "@/components/features/students/shift-filter";
 
 const PROMOTION_STATUS_LABEL: Record<string, string> = {
   fee_pending: "Awaiting Fee",
@@ -13,7 +14,7 @@ const PROMOTION_STATUS_LABEL: Record<string, string> = {
   promoted: "Promoted",
 };
 
-export default async function DepartmentFeesPage() {
+export default async function DepartmentFeesPage({ searchParams }: { searchParams: Promise<{ shiftId?: string }> }) {
   const profile = await requireRole("department");
   const supabase = await createClient();
 
@@ -25,13 +26,17 @@ export default async function DepartmentFeesPage() {
     );
   }
 
-  const { data: students } = await supabase
-    .from("profiles")
-    .select("id, full_name")
-    .eq("department_id", profile.departmentId)
-    .eq("role", "student");
+  const { shiftId } = await searchParams;
+
+  const [{ data: students }, { data: shifts }] = await Promise.all([
+    supabase.from("profiles").select("id, full_name, shift_id").eq("department_id", profile.departmentId).eq("role", "student"),
+    profile.collegeId
+      ? supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order")
+      : Promise.resolve({ data: [] }),
+  ]);
   const studentIds = (students ?? []).map((s) => s.id);
-  const studentNames = new Map((students ?? []).map((s) => [s.id, s.full_name]));
+  const studentById = new Map((students ?? []).map((s) => [s.id, s]));
+  const shiftName = new Map((shifts ?? []).map((s) => [s.id, s.name]));
 
   const { data: promotions } =
     studentIds.length > 0
@@ -45,10 +50,13 @@ export default async function DepartmentFeesPage() {
       : { data: [] };
   const voucherByPromotion = new Map((vouchers ?? []).map((v) => [v.promotion_id, v]));
 
+  const visiblePromotions = (promotions ?? []).filter((p) => !shiftId || studentById.get(p.student_profile_id)?.shift_id === shiftId);
+
   return (
     <div className="space-y-6">
       <LiveRefresh table="fee_vouchers" />
       <LiveRefresh table="promotions" />
+      <ShiftFilter shifts={shifts ?? []} selectedId={shiftId ?? ""} basePath="/dashboard/department/fees" />
       <Card>
         <CardHeader>
           <CardTitle>Student Fee Status</CardTitle>
@@ -59,6 +67,7 @@ export default async function DepartmentFeesPage() {
               <TableRow>
                 <TableHead>Student</TableHead>
                 <TableHead>Promotion Status</TableHead>
+                <TableHead>Shift</TableHead>
                 <TableHead>Voucher</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Fee Status</TableHead>
@@ -66,13 +75,21 @@ export default async function DepartmentFeesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(promotions ?? []).map((p) => {
+              {visiblePromotions.map((p) => {
                 const voucher = voucherByPromotion.get(p.id);
+                const student = studentById.get(p.student_profile_id);
                 const registrationEnabled = p.status === "pending_registration" || p.status === "registration_complete" || p.status === "promoted";
                 return (
                   <TableRow key={p.id}>
-                    <TableCell>{studentNames.get(p.student_profile_id) ?? p.student_profile_id}</TableCell>
+                    <TableCell>{student?.full_name ?? p.student_profile_id}</TableCell>
                     <TableCell className="text-sm text-gray-600">{PROMOTION_STATUS_LABEL[p.status] ?? p.status}</TableCell>
+                    <TableCell>
+                      {student?.shift_id ? (
+                        <Badge variant="outline">{shiftName.get(student.shift_id) ?? "—"}</Badge>
+                      ) : (
+                        <span className="text-sm text-gray-400">Unassigned</span>
+                      )}
+                    </TableCell>
                     <TableCell>{voucher?.voucher_number ?? "Not generated"}</TableCell>
                     <TableCell>{voucher ? `PKR ${voucher.total_amount.toLocaleString()}` : "—"}</TableCell>
                     <TableCell>{voucher ? <VoucherStatusBadge status={voucher.status} /> : <Badge variant="secondary">Not Generated</Badge>}</TableCell>
@@ -82,9 +99,9 @@ export default async function DepartmentFeesPage() {
                   </TableRow>
                 );
               })}
-              {(!promotions || promotions.length === 0) && (
+              {visiblePromotions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-gray-500">
+                  <TableCell colSpan={7} className="py-8 text-center text-gray-500">
                     No active promotion cycles for your department yet.
                   </TableCell>
                 </TableRow>

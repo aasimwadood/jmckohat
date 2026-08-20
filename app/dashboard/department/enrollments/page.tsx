@@ -38,15 +38,18 @@ export default async function DepartmentEnrollmentsPage() {
     );
   }
 
-  const [{ data: courses }, { data: semesters }, { data: students }] = await Promise.all([
+  const [{ data: courses }, { data: semesters }, { data: students }, { data: shifts }] = await Promise.all([
     supabase.from("courses").select("id, code, title").eq("department_id", profile.departmentId).order("code"),
     supabase.from("semesters").select("id, number, academic_session_id").order("number"),
     supabase
       .from("profiles")
-      .select("id, full_name, username, batch, current_semester_id")
+      .select("id, full_name, username, batch, current_semester_id, shift_id")
       .eq("department_id", profile.departmentId)
       .eq("role", "student")
       .order("full_name"),
+    profile.collegeId
+      ? supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order")
+      : Promise.resolve({ data: [] }),
   ]);
 
   const courseIds = (courses ?? []).map((c) => c.id);
@@ -74,8 +77,10 @@ export default async function DepartmentEnrollmentsPage() {
         username: s.username,
         batch: s.batch,
         semesterNumber: s.current_semester_id ? (semesterNumberById.get(s.current_semester_id) ?? null) : null,
+        shiftId: s.shift_id,
       }))}
       enrollments={enrollmentRows}
+      shifts={shifts ?? []}
     />
   );
 }

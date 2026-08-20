@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { startPromotionCycleAction, registerPromotionCoursesAction } from "@/lib/actions/promotions";
 import { finalizePromotionAction } from "@/lib/actions/fees";
@@ -22,6 +23,9 @@ export type PromotionRow = {
   maxCourses: number;
   status: string;
   registeredCount: number;
+  shiftId: string | null;
+  shiftName: string | null;
+  groupSectionLabel: string | null;
 };
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
@@ -36,16 +40,26 @@ export function PromotionsView({
   departmentId,
   promotions,
   availableCourses,
+  shifts = [],
+  hasGroups = false,
 }: {
   role: "department" | "administration" | "admin" | "focal_person_intermediate";
   departmentId: string;
   promotions: PromotionRow[];
   availableCourses: { id: string; code: string; title: string }[];
+  shifts?: { id: string; name: string }[];
+  hasGroups?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [shiftFilter, setShiftFilter] = useState("");
   const canStartCycle = role === "department" || role === "admin" || role === "focal_person_intermediate";
   const canRegister = role === "department" || role === "admin" || role === "focal_person_intermediate";
   const canVerifyFee = role === "administration" || role === "admin";
+
+  const visiblePromotions = useMemo(
+    () => (shiftFilter ? promotions.filter((p) => p.shiftId === shiftFilter) : promotions),
+    [promotions, shiftFilter],
+  );
 
   const startCycle = () => {
     startTransition(async () => {
@@ -58,14 +72,31 @@ export function PromotionsView({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <CardTitle>Promotions</CardTitle>
-          {canStartCycle && (
-            <Button onClick={startCycle} disabled={isPending} variant="outline">
-              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Start Promotion Cycle
-            </Button>
-          )}
+          <div className="flex items-center gap-4">
+            {shifts.length > 0 && (
+              <Select value={shiftFilter || "all"} onValueChange={(v) => setShiftFilter(v === "all" ? "" : v)}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="All shifts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All shifts</SelectItem>
+                  {shifts.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {canStartCycle && (
+              <Button onClick={startCycle} disabled={isPending} variant="outline">
+                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                Start Promotion Cycle
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -76,12 +107,14 @@ export function PromotionsView({
               <TableHead>CGPA</TableHead>
               <TableHead>Standing</TableHead>
               <TableHead>Registered</TableHead>
+              <TableHead>Shift</TableHead>
+              {hasGroups && <TableHead>Group / Section</TableHead>}
               <TableHead>Status</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {promotions.map((p) => (
+            {visiblePromotions.map((p) => (
               <TableRow key={p.id}>
                 <TableCell>{p.studentName}</TableCell>
                 <TableCell>{p.cgpa?.toFixed(2) ?? "—"}</TableCell>
@@ -89,6 +122,14 @@ export function PromotionsView({
                 <TableCell>
                   {p.registeredCount}/{p.maxCourses}
                 </TableCell>
+                <TableCell>
+                  {p.shiftName ? <Badge variant="secondary">{p.shiftName}</Badge> : <span className="text-sm text-gray-400">Unassigned</span>}
+                </TableCell>
+                {hasGroups && (
+                  <TableCell>
+                    {p.groupSectionLabel ?? <span className="text-sm text-gray-400">Unassigned</span>}
+                  </TableCell>
+                )}
                 <TableCell>
                   <Badge variant={STATUS_VARIANT[p.status] ?? "secondary"} className="capitalize">
                     {p.status.replace(/_/g, " ")}
@@ -103,9 +144,9 @@ export function PromotionsView({
                 </TableCell>
               </TableRow>
             ))}
-            {promotions.length === 0 && (
+            {visiblePromotions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-gray-500">
+                <TableCell colSpan={hasGroups ? 8 : 7} className="py-8 text-center text-gray-500">
                   No promotion cycles in progress.
                 </TableCell>
               </TableRow>

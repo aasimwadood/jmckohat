@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { enrollStudentsAction, updateEnrollmentStatusAction } from "@/lib/actions/enrollments";
 
 type Course = { id: string; code: string; title: string };
-type Student = { id: string; name: string; username: string; batch: string | null; semesterNumber: number | null };
+type Student = { id: string; name: string; username: string; batch: string | null; semesterNumber: number | null; shiftId: string | null };
 type EnrollmentRow = { id: string; studentName: string; courseLabel: string; semesterNumber: number; status: string };
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive"> = {
@@ -30,13 +30,16 @@ export function EnrollmentsView({
   courses,
   students,
   enrollments,
+  shifts = [],
 }: {
   courses: Course[];
   students: Student[];
   enrollments: EnrollmentRow[];
+  shifts?: { id: string; name: string }[];
 }) {
   const [courseId, setCourseId] = useState("");
   const [batch, setBatch] = useState("");
+  const [shiftFilter, setShiftFilter] = useState("");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
@@ -45,15 +48,17 @@ export function EnrollmentsView({
     () => [...new Set(students.map((s) => s.batch).filter((b): b is string => !!b))].sort().reverse(),
     [students],
   );
+  const shiftName = useMemo(() => new Map(shifts.map((s) => [s.id, s.name])), [shifts]);
 
   const visibleStudents = useMemo(() => {
     const q = search.trim().toLowerCase();
     return students.filter((s) => {
       if (batch && s.batch !== batch) return false;
+      if (shiftFilter && s.shiftId !== shiftFilter) return false;
       if (q && !s.name.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [students, batch, search]);
+  }, [students, batch, shiftFilter, search]);
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -96,7 +101,7 @@ export function EnrollmentsView({
           <CardTitle>Enroll Students</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <Label>Course</Label>
               <Select value={courseId} onValueChange={setCourseId}>
@@ -128,6 +133,24 @@ export function EnrollmentsView({
                 </SelectContent>
               </Select>
             </div>
+            {shifts.length > 0 && (
+              <div>
+                <Label>Shift</Label>
+                <Select value={shiftFilter || "all"} onValueChange={(v) => setShiftFilter(v === "all" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All shifts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All shifts</SelectItem>
+                    {shifts.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div>
@@ -159,6 +182,11 @@ export function EnrollmentsView({
                     {s.semesterNumber && (
                       <Badge variant="secondary" className="text-xs">
                         Sem {s.semesterNumber}
+                      </Badge>
+                    )}
+                    {s.shiftId && (
+                      <Badge variant="outline" className="text-xs">
+                        {shiftName.get(s.shiftId) ?? "—"}
                       </Badge>
                     )}
                   </div>

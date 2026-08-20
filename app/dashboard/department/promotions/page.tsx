@@ -16,9 +16,13 @@ export default async function DepartmentPromotionsPage() {
     );
   }
 
-  const { data: students } = await supabase.from("profiles").select("id, full_name").eq("department_id", profile.departmentId).eq("role", "student");
+  const { data: students } = await supabase
+    .from("profiles")
+    .select("id, full_name, shift_id, group_id, section_id")
+    .eq("department_id", profile.departmentId)
+    .eq("role", "student");
   const studentIds = (students ?? []).map((s) => s.id);
-  const studentNames = new Map((students ?? []).map((s) => [s.id, s.full_name]));
+  const studentById = new Map((students ?? []).map((s) => [s.id, s]));
 
   const { data: promotions } =
     studentIds.length > 0
@@ -37,22 +41,48 @@ export default async function DepartmentPromotionsPage() {
     registeredCountByStudentSemester.set(key, (registeredCountByStudentSemester.get(key) ?? 0) + 1);
   }
 
-  const { data: courses } = await supabase.from("courses").select("id, code, title").eq("department_id", profile.departmentId);
+  const [{ data: courses }, { data: shifts }, { data: groups }, { data: sections }] = await Promise.all([
+    supabase.from("courses").select("id, code, title").eq("department_id", profile.departmentId),
+    profile.collegeId
+      ? supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order")
+      : Promise.resolve({ data: [] }),
+    supabase.from("groups").select("id, name").eq("department_id", profile.departmentId).order("sort_order"),
+    supabase.from("sections").select("id, name, group_id").eq("department_id", profile.departmentId).order("sort_order"),
+  ]);
 
-  const rows: PromotionRow[] = (promotions ?? []).map((p) => ({
-    id: p.id,
-    studentName: studentNames.get(p.student_profile_id) ?? p.student_profile_id,
-    cgpa: p.cgpa,
-    academicStanding: p.academic_standing,
-    maxCourses: p.max_courses,
-    status: p.status,
-    registeredCount: registeredCountByStudentSemester.get(`${p.student_profile_id}:${p.to_semester_id}`) ?? 0,
-  }));
+  const shiftName = new Map((shifts ?? []).map((s) => [s.id, s.name]));
+  const groupName = new Map((groups ?? []).map((g) => [g.id, g.name]));
+  const sectionName = new Map((sections ?? []).map((s) => [s.id, s.name]));
+
+  const rows: PromotionRow[] = (promotions ?? []).map((p) => {
+    const student = studentById.get(p.student_profile_id);
+    return {
+      id: p.id,
+      studentName: student?.full_name ?? p.student_profile_id,
+      cgpa: p.cgpa,
+      academicStanding: p.academic_standing,
+      maxCourses: p.max_courses,
+      status: p.status,
+      registeredCount: registeredCountByStudentSemester.get(`${p.student_profile_id}:${p.to_semester_id}`) ?? 0,
+      shiftId: student?.shift_id ?? null,
+      shiftName: student?.shift_id ? (shiftName.get(student.shift_id) ?? null) : null,
+      groupSectionLabel: student?.group_id
+        ? `${groupName.get(student.group_id) ?? "—"}${student.section_id ? ` — ${sectionName.get(student.section_id) ?? "—"}` : ""}`
+        : null,
+    };
+  });
 
   return (
     <>
       <LiveRefresh table="promotions" />
-      <PromotionsView role="department" departmentId={profile.departmentId} promotions={rows} availableCourses={courses ?? []} />
+      <PromotionsView
+        role="department"
+        departmentId={profile.departmentId}
+        promotions={rows}
+        availableCourses={courses ?? []}
+        shifts={shifts ?? []}
+        hasGroups={(groups ?? []).length > 0}
+      />
     </>
   );
 }

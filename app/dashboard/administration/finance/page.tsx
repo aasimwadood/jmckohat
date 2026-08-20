@@ -6,7 +6,7 @@ import { PromotionsView, type PromotionRow } from "@/components/features/promoti
 import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function AdministrationFinancePage() {
-  await requireRole("administration");
+  const profile = await requireRole("administration");
   const supabase = await createClient();
 
   const [{ data: payments }, { data: scholarships }, { data: vouchers }] = await Promise.all([
@@ -30,18 +30,31 @@ export default async function AdministrationFinancePage() {
     .in("status", ["fee_pending", "registration_complete"])
     .order("created_at", { ascending: false });
   const promoStudentIds = [...new Set((promotions ?? []).map((p) => p.student_profile_id))];
-  const { data: promoStudents } =
-    promoStudentIds.length > 0 ? await supabase.from("profiles").select("id, full_name").in("id", promoStudentIds) : { data: [] };
-  const promoStudentNames = new Map((promoStudents ?? []).map((s) => [s.id, s.full_name]));
-  const promotionRows: PromotionRow[] = (promotions ?? []).map((p) => ({
-    id: p.id,
-    studentName: promoStudentNames.get(p.student_profile_id) ?? p.student_profile_id,
-    cgpa: p.cgpa,
-    academicStanding: p.academic_standing,
-    maxCourses: p.max_courses,
-    status: p.status,
-    registeredCount: 0,
-  }));
+  const [{ data: promoStudents }, { data: shifts }] = await Promise.all([
+    promoStudentIds.length > 0
+      ? supabase.from("profiles").select("id, full_name, shift_id").in("id", promoStudentIds)
+      : Promise.resolve({ data: [] }),
+    profile.collegeId
+      ? supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order")
+      : Promise.resolve({ data: [] }),
+  ]);
+  const promoStudentById = new Map((promoStudents ?? []).map((s) => [s.id, s]));
+  const shiftName = new Map((shifts ?? []).map((s) => [s.id, s.name]));
+  const promotionRows: PromotionRow[] = (promotions ?? []).map((p) => {
+    const student = promoStudentById.get(p.student_profile_id);
+    return {
+      id: p.id,
+      studentName: student?.full_name ?? p.student_profile_id,
+      cgpa: p.cgpa,
+      academicStanding: p.academic_standing,
+      maxCourses: p.max_courses,
+      status: p.status,
+      registeredCount: 0,
+      shiftId: student?.shift_id ?? null,
+      shiftName: student?.shift_id ? (shiftName.get(student.shift_id) ?? null) : null,
+      groupSectionLabel: null,
+    };
+  });
 
   const voucherSummary = (vouchers ?? []).reduce(
     (acc, v) => {
@@ -151,7 +164,7 @@ export default async function AdministrationFinancePage() {
         </CardContent>
       </Card>
 
-      <PromotionsView role="administration" departmentId="" promotions={promotionRows} availableCourses={[]} />
+      <PromotionsView role="administration" departmentId="" promotions={promotionRows} availableCourses={[]} shifts={shifts ?? []} />
     </div>
   );
 }
