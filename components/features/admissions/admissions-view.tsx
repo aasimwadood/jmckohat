@@ -22,6 +22,7 @@ import {
   type AdmissionDocumentRow,
 } from "@/lib/actions/admissions";
 import { assignAdmissionShiftAction } from "@/lib/actions/shifts";
+import { assignAdmissionPlacementAction } from "@/lib/actions/groups-sections";
 import { generateAdmissionFeeVoucherAction } from "@/lib/actions/fees";
 import { MERIT_CATEGORIES } from "@/lib/validations/admissions";
 import type { AdmissionRow, AdmissionViewRole } from "./types";
@@ -56,6 +57,8 @@ export function AdmissionsView({
   isEnabled,
   programs,
   shifts,
+  groups,
+  sections,
   admissions,
 }: {
   role: AdmissionViewRole;
@@ -64,13 +67,15 @@ export function AdmissionsView({
   isEnabled: boolean;
   programs: { id: string; name: string }[];
   shifts: { id: string; name: string }[];
+  groups: { id: string; name: string }[];
+  sections: { id: string; name: string; groupId: string }[];
   admissions: AdmissionRow[];
 }) {
-  const canManageSettings = role === "department" || role === "admin";
-  const canAddStudent = role === "department" || role === "faculty" || role === "admin";
+  const canManageSettings = role === "department" || role === "admin" || role === "focal_person_intermediate";
+  const canAddStudent = role === "department" || role === "faculty" || role === "admin" || role === "focal_person_intermediate";
   const canApproveFee = role === "administration" || role === "admin";
-  const canAdmitOrCancel = role === "department" || role === "faculty" || role === "admin";
-  const canUploadDocuments = role === "department" || role === "faculty" || role === "admin";
+  const canAdmitOrCancel = role === "department" || role === "faculty" || role === "admin" || role === "focal_person_intermediate";
+  const canUploadDocuments = role === "department" || role === "faculty" || role === "admin" || role === "focal_person_intermediate";
 
   return (
     <div className="space-y-6">
@@ -83,7 +88,7 @@ export function AdmissionsView({
           <div className="flex items-center justify-between">
             <CardTitle>Admissions</CardTitle>
             {canAddStudent && isEnabled && (
-              <AddStudentDialog departmentId={departmentId} programs={programs} shifts={shifts} />
+              <AddStudentDialog departmentId={departmentId} programs={programs} shifts={shifts} groups={groups} />
             )}
           </div>
         </CardHeader>
@@ -101,6 +106,7 @@ export function AdmissionsView({
                 <TableHead>Status</TableHead>
                 <TableHead>Reg. #</TableHead>
                 <TableHead>Shift</TableHead>
+                <TableHead>Group / Section</TableHead>
                 <TableHead>Fee Voucher</TableHead>
                 <TableHead>Documents</TableHead>
                 <TableHead>Action</TableHead>
@@ -124,6 +130,9 @@ export function AdmissionsView({
                     <ShiftCell admission={admission} shifts={shifts} canEdit={canAddStudent} />
                   </TableCell>
                   <TableCell>
+                    <GroupSectionCell admission={admission} groups={groups} sections={sections} canEdit={canAddStudent} />
+                  </TableCell>
+                  <TableCell>
                     <FeeVoucherCell admission={admission} canGenerate={canAddStudent} />
                   </TableCell>
                   <TableCell>
@@ -140,7 +149,7 @@ export function AdmissionsView({
               ))}
               {admissions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-8 text-center text-gray-500">
+                  <TableCell colSpan={9} className="py-8 text-center text-gray-500">
                     No admission records yet.
                   </TableCell>
                 </TableRow>
@@ -192,15 +201,18 @@ function AddStudentDialog({
   departmentId,
   programs,
   shifts,
+  groups,
 }: {
   departmentId: string;
   programs: { id: string; name: string }[];
   shifts: { id: string; name: string }[];
+  groups: { id: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const [meritCategory, setMeritCategory] = useState("open_merit");
   const [programId, setProgramId] = useState("");
   const [shiftId, setShiftId] = useState("");
+  const [groupId, setGroupId] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -210,6 +222,7 @@ function AddStudentDialog({
     formData.set("meritCategory", meritCategory);
     formData.set("programId", programId);
     formData.set("shiftId", shiftId);
+    formData.set("groupId", groupId);
     startTransition(async () => {
       const result = await createAdmissionAction(formData);
       if (result?.error) setError(result.error);
@@ -280,6 +293,24 @@ function AddStudentDialog({
                   {shifts.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {groups.length > 0 && (
+            <div>
+              <Label>Group</Label>
+              <Select value={groupId || "none"} onValueChange={(v) => setGroupId(v === "none" ? "" : v)} disabled={isPending}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {groups.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -360,6 +391,86 @@ function ShiftCell({
         ))}
       </SelectContent>
     </Select>
+  );
+}
+
+function GroupSectionCell({
+  admission,
+  groups,
+  sections,
+  canEdit,
+}: {
+  admission: AdmissionRow;
+  groups: { id: string; name: string }[];
+  sections: { id: string; name: string; groupId: string }[];
+  canEdit: boolean;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [pendingGroupId, setPendingGroupId] = useState(admission.groupId ?? "");
+
+  const assign = (groupId: string, sectionId: string) => {
+    const formData = new FormData();
+    formData.set("admissionId", admission.id);
+    formData.set("groupId", groupId);
+    formData.set("sectionId", sectionId);
+    startTransition(async () => {
+      const result = await assignAdmissionPlacementAction(formData);
+      if (result?.error) toast.error(result.error);
+      else toast.success("Group/Section updated");
+    });
+  };
+
+  const onGroupChange = (value: string) => {
+    const groupId = value === "none" ? "" : value;
+    setPendingGroupId(groupId);
+    // Changing group always clears section — a section from the old group
+    // can never be valid for the new one.
+    assign(groupId, "");
+  };
+
+  const onSectionChange = (value: string) => {
+    assign(pendingGroupId, value === "none" ? "" : value);
+  };
+
+  if (!canEdit || groups.length === 0) {
+    const groupName = groups.find((g) => g.id === admission.groupId)?.name;
+    const sectionName = sections.find((s) => s.id === admission.sectionId)?.name;
+    return <span className="text-sm text-gray-600">{groupName ? `${groupName}${sectionName ? ` — ${sectionName}` : ""}` : "—"}</span>;
+  }
+
+  const sectionsForGroup = sections.filter((s) => s.groupId === pendingGroupId);
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Select value={pendingGroupId || "none"} onValueChange={onGroupChange} disabled={isPending}>
+        <SelectTrigger className="h-8 w-[140px]">
+          <SelectValue placeholder="Group" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">Unassigned</SelectItem>
+          {groups.map((g) => (
+            <SelectItem key={g.id} value={g.id}>
+              {g.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {pendingGroupId && (
+        <Select value={admission.sectionId ?? "none"} onValueChange={onSectionChange} disabled={isPending || sectionsForGroup.length === 0}>
+          <SelectTrigger className="h-8 w-[140px]">
+            <SelectValue placeholder="Section" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Unassigned</SelectItem>
+            {sectionsForGroup.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
   );
 }
 

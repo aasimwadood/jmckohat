@@ -21,6 +21,7 @@ export const createAdmissionSchema = z.object({
   meritCategory: z.enum(MERIT_CATEGORIES),
   meritNumber: z.coerce.number().int().optional(),
   shiftId: z.string().uuid().optional().or(z.literal("")),
+  groupId: z.string().uuid().optional().or(z.literal("")),
 });
 
 export const approveFeeSchema = z.object({

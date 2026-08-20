@@ -17,6 +17,7 @@ type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 export type UserRoleEnum =
   | "admin" | "faculty" | "student" | "department"
   | "controller" | "coordinator" | "principal" | "administration"
+  | "focal_person_intermediate"
   | "hed_admin" | "directorate_admin" | "jmc_admin" | "college_admin";
 export type OrgStatusEnum = "active" | "inactive";
 export type AdmissionStatusEnum = "pending" | "fee_approved" | "admitted" | "canceled";
@@ -68,7 +69,7 @@ type ProfilesRow = {
   is_active: boolean; directorate_id: string | null; jmc_id: string | null; college_id: string | null;
   username: string; created_at: string; updated_at: string;
   registration_number: string | null; father_name: string | null; program_id: string | null; batch: string | null;
-  shift_id: string | null;
+  shift_id: string | null; group_id: string | null; section_id: string | null;
 };
 
 // Designations: Principal/HOD-managed focal-person titles ------------------
@@ -123,6 +124,20 @@ type CollegeBankAccountsRow = {
 // the same profiles/admissions tables both use.
 type ShiftsRow = {
   id: string; college_id: string; name: string; code: string;
+  status: "active" | "inactive"; sort_order: number; created_by: string | null;
+  created_at: string; updated_at: string;
+};
+// Shift Management Phase 2 (0074): Groups (Pre-Medical, Pre-Engineering,
+// ...) and Sections (nested under a Group) — department-scoped, since
+// they're an Intermediate-only concept isolated via the real "Intermediate"
+// department row rather than a parallel scoping axis.
+type GroupsRow = {
+  id: string; department_id: string; name: string; code: string;
+  status: "active" | "inactive"; sort_order: number; created_by: string | null;
+  created_at: string; updated_at: string;
+};
+type SectionsRow = {
+  id: string; department_id: string; group_id: string; name: string; code: string;
   status: "active" | "inactive"; sort_order: number; created_by: string | null;
   created_at: string; updated_at: string;
 };
@@ -193,7 +208,7 @@ type AdmissionsRow = {
   registration_number: string | null; semester_id: string | null; created_by: string;
   approved_by: string | null; approved_at: string | null; canceled_by: string | null;
   canceled_at: string | null; cancel_reason: string | null; student_profile_id: string | null;
-  created_at: string; updated_at: string; shift_id: string | null;
+  created_at: string; updated_at: string; shift_id: string | null; group_id: string | null; section_id: string | null;
 };
 type RegistrationCountersRow = { department_id: string; academic_year: number; last_seq: number };
 type AdmissionDocumentsRow = {
@@ -503,7 +518,7 @@ export type Database = {
   public: {
     Tables: {
       departments: Table<DepartmentsRow, "id" | "hod_profile_id" | "description" | "image_path" | "established_year" | "labs_count" | "created_at" | "updated_at">;
-      profiles: Table<ProfilesRow, "phone" | "department_id" | "avatar_path" | "current_semester_id" | "is_active" | "directorate_id" | "jmc_id" | "college_id" | "created_at" | "updated_at" | "registration_number" | "father_name" | "program_id" | "batch" | "shift_id">;
+      profiles: Table<ProfilesRow, "phone" | "department_id" | "avatar_path" | "current_semester_id" | "is_active" | "directorate_id" | "jmc_id" | "college_id" | "created_at" | "updated_at" | "registration_number" | "father_name" | "program_id" | "batch" | "shift_id" | "group_id" | "section_id">;
       programs: Table<ProgramsRow, "id" | "created_at">;
 
       designation_types: Table<DesignationTypesRow, "id" | "created_at">;
@@ -516,6 +531,8 @@ export type Database = {
       colleges: Table<CollegesRow, "id" | "district" | "division" | "address" | "contact_number" | "email" | "college_admin_profile_id" | "status" | "created_at" | "updated_at" | "slug" | "logo_path" | "favicon_path" | "banner_path" | "principal_name" | "principal_photo_path" | "about_content" | "facebook_url" | "twitter_url" | "youtube_url" | "theme_color">;
       college_bank_accounts: Table<CollegeBankAccountsRow, "id" | "account_title" | "sort_order" | "created_by" | "created_at" | "updated_at" | "shift_id">;
       shifts: Table<ShiftsRow, "id" | "status" | "sort_order" | "created_by" | "created_at" | "updated_at">;
+      groups: Table<GroupsRow, "id" | "status" | "sort_order" | "created_by" | "created_at" | "updated_at">;
+      sections: Table<SectionsRow, "id" | "status" | "sort_order" | "created_by" | "created_at" | "updated_at">;
       academic_sessions: Table<AcademicSessionsRow, "id" | "is_active" | "created_at">;
       semesters: Table<SemestersRow, "id" | "is_current" | "created_at">;
 
@@ -532,7 +549,7 @@ export type Database = {
       attendance: Table<AttendanceRow, "id" | "marked_by" | "created_at">;
 
       admission_settings: Table<AdmissionSettingsRow, "is_enabled" | "enabled_by" | "enabled_at">;
-      admissions: Table<AdmissionsRow, "id" | "father_name" | "cnic" | "contact_number" | "email" | "merit_category" | "merit_number" | "status" | "registration_fee" | "crf_fee" | "admission_fee" | "tuition_fee" | "examination_fee" | "hostel_fee" | "transport_fee" | "fee_receipt_number" | "fee_paid_at" | "fee_approved_by" | "registration_number" | "semester_id" | "approved_by" | "approved_at" | "canceled_by" | "canceled_at" | "cancel_reason" | "student_profile_id" | "created_at" | "updated_at" | "shift_id">;
+      admissions: Table<AdmissionsRow, "id" | "father_name" | "cnic" | "contact_number" | "email" | "merit_category" | "merit_number" | "status" | "registration_fee" | "crf_fee" | "admission_fee" | "tuition_fee" | "examination_fee" | "hostel_fee" | "transport_fee" | "fee_receipt_number" | "fee_paid_at" | "fee_approved_by" | "registration_number" | "semester_id" | "approved_by" | "approved_at" | "canceled_by" | "canceled_at" | "cancel_reason" | "student_profile_id" | "created_at" | "updated_at" | "shift_id" | "group_id" | "section_id">;
       registration_counters: Table<RegistrationCountersRow, "last_seq">;
       admission_documents: Table<AdmissionDocumentsRow, "id" | "uploaded_by" | "uploaded_at">;
 
@@ -616,6 +633,7 @@ export type Database = {
       approve_admission_fee: { Args: { p_admission_id: string; p_receipt_number: string }; Returns: AdmissionsRow };
       cancel_admission: { Args: { p_admission_id: string; p_reason: string }; Returns: AdmissionsRow };
       assign_admission_shift: { Args: { p_admission_id: string; p_shift_id: string | null }; Returns: AdmissionsRow };
+      assign_admission_placement: { Args: { p_admission_id: string; p_group_id: string | null; p_section_id: string | null }; Returns: AdmissionsRow };
       register_for_promotion: { Args: { p_promotion_id: string; p_course_ids: string[] }; Returns: PromotionsRow };
       verify_promotion_fee: { Args: { p_promotion_id: string; p_receipt_number?: string | null }; Returns: PromotionsRow };
       clear_promotion_fee: { Args: { p_promotion_id: string; p_voucher_id: string }; Returns: PromotionsRow };

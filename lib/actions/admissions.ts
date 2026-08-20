@@ -25,7 +25,7 @@ export async function toggleAdmissionSettingsAction(
   academicSessionId: string,
   isEnabled: boolean,
 ): Promise<ActionResult> {
-  const profile = await requireRole("department", "admin");
+  const profile = await requireRole("department", "admin", "focal_person_intermediate");
   const supabase = await createClient();
 
   const { error } = await supabase.from("admission_settings").upsert(
@@ -45,7 +45,7 @@ export async function toggleAdmissionSettingsAction(
 }
 
 export async function createAdmissionAction(formData: FormData): Promise<ActionResult> {
-  const profile = await requireRole("department", "faculty", "admin");
+  const profile = await requireRole("department", "faculty", "admin", "focal_person_intermediate");
 
   const parsed = createAdmissionSchema.safeParse({
     departmentId: formData.get("departmentId"),
@@ -58,6 +58,7 @@ export async function createAdmissionAction(formData: FormData): Promise<ActionR
     meritCategory: formData.get("meritCategory"),
     meritNumber: formData.get("meritNumber"),
     shiftId: formData.get("shiftId"),
+    groupId: formData.get("groupId"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -78,6 +79,7 @@ export async function createAdmissionAction(formData: FormData): Promise<ActionR
       merit_category: parsed.data.meritCategory,
       merit_number: parsed.data.meritNumber ?? null,
       shift_id: parsed.data.shiftId || null,
+      group_id: parsed.data.groupId || null,
       created_by: profile.id,
     })
     .select("id")
@@ -125,7 +127,7 @@ export async function approveAdmissionFeeAction(formData: FormData): Promise<Act
 }
 
 export async function admitStudentAction(admissionId: string): Promise<ActionResult> {
-  const profile = await requireRole("department", "faculty", "admin");
+  const profile = await requireRole("department", "faculty", "admin", "focal_person_intermediate");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admit_student", { p_admission_id: admissionId });
   if (error) return { error: error.message };
@@ -136,7 +138,7 @@ export async function admitStudentAction(admissionId: string): Promise<ActionRes
 }
 
 export async function cancelAdmissionAction(formData: FormData): Promise<ActionResult> {
-  const profile = await requireRole("department", "faculty", "admin");
+  const profile = await requireRole("department", "faculty", "admin", "focal_person_intermediate");
 
   const parsed = cancelAdmissionSchema.safeParse({
     admissionId: formData.get("admissionId"),
@@ -159,7 +161,7 @@ export async function cancelAdmissionAction(formData: FormData): Promise<ActionR
 export type AdmissionDocumentRow = { id: string; label: string; uploadedAt: string; url: string | null };
 
 export async function getAdmissionDocumentsAction(admissionId: string): Promise<AdmissionDocumentRow[]> {
-  await requireRole("department", "faculty", "administration", "admin", "principal");
+  await requireRole("department", "faculty", "administration", "admin", "principal", "focal_person_intermediate");
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -181,7 +183,7 @@ export async function getAdmissionDocumentsAction(admissionId: string): Promise<
 }
 
 export async function uploadAdmissionDocumentAction(formData: FormData): Promise<ActionResult> {
-  const profile = await requireRole("department", "faculty", "admin");
+  const profile = await requireRole("department", "faculty", "admin", "focal_person_intermediate");
 
   const parsed = uploadAdmissionDocumentSchema.safeParse({
     admissionId: formData.get("admissionId"),

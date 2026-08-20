@@ -33,6 +33,8 @@ import {
   User,
   Sparkles,
   Clock,
+  Layers,
+  Rows3,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -70,6 +72,8 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   CheckCircle,
   User,
   Clock,
+  Layers,
+  Rows3,
 };
 
 function NavIcon({ name, className }: { name: string; className?: string }) {

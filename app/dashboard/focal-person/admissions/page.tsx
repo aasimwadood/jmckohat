@@ -5,16 +5,14 @@ import { AdmissionsView } from "@/components/features/admissions/admissions-view
 import type { AdmissionRow } from "@/components/features/admissions/types";
 import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
-export default async function FacultyAdmissionsPage() {
-  const profile = await requireRole("faculty");
+export default async function FocalPersonAdmissionsPage() {
+  const profile = await requireRole("focal_person_intermediate");
   const supabase = await createClient();
 
   if (!profile.departmentId) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-gray-500">
-          You are not assigned to a department yet.
-        </CardContent>
+        <CardContent className="py-8 text-center text-gray-500">Your department is not configured yet.</CardContent>
       </Card>
     );
   }
@@ -76,7 +74,7 @@ export default async function FacultyAdmissionsPage() {
     <>
       <LiveRefresh table="admissions" filter={`department_id=eq.${profile.departmentId}`} />
       <AdmissionsView
-        role="faculty"
+        role="focal_person_intermediate"
         departmentId={profile.departmentId}
         academicSessionId={activeSession?.id ?? null}
         isEnabled={settings?.is_enabled ?? false}

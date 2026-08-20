@@ -18,7 +18,7 @@ import { maxSemesterNumberFor } from "@/lib/utils/degree-level";
  * source of truth exists.
  */
 export async function startPromotionCycleAction(departmentId: string): Promise<ActionResult> {
-  await requireRole("department", "admin");
+  await requireRole("department", "admin", "focal_person_intermediate");
   const supabase = await createClient();
 
   const { data: students } = await supabase
@@ -86,12 +86,12 @@ export async function startPromotionCycleAction(departmentId: string): Promise<A
   const { error } = await supabase.from("promotions").upsert(rows, { onConflict: "student_profile_id,to_semester_id", ignoreDuplicates: true });
   if (error) return { error: error.message };
 
-  revalidatePath("/dashboard/department/promotions");
+  revalidatePath("/dashboard", "layout");
   return {};
 }
 
 export async function registerPromotionCoursesAction(formData: FormData): Promise<ActionResult> {
-  await requireRole("department", "faculty", "admin");
+  await requireRole("department", "faculty", "admin", "focal_person_intermediate");
 
   const parsed = registerCoursesSchema.safeParse({
     promotionId: formData.get("promotionId"),
@@ -106,7 +106,7 @@ export async function registerPromotionCoursesAction(formData: FormData): Promis
   });
   if (error) return { error: error.message };
 
-  revalidatePath("/dashboard/department/promotions");
+  revalidatePath("/dashboard", "layout");
   return {};
 }
 

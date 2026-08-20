@@ -15,11 +15,11 @@ import type { UserRole } from "@/lib/permissions/roles";
  * bypass the database.
  */
 export const RESOURCE_ROLES = {
-  admissions: ["admin", "department", "faculty", "administration"],
-  promotions: ["admin", "department", "faculty", "administration"],
+  admissions: ["admin", "department", "faculty", "administration", "focal_person_intermediate"],
+  promotions: ["admin", "department", "faculty", "administration", "focal_person_intermediate"],
   fyp: ["admin", "department", "faculty", "student", "coordinator"],
   timetable: ["admin", "department", "coordinator", "faculty", "student"],
-  results: ["admin", "faculty", "controller", "student", "department"],
+  results: ["admin", "faculty", "controller", "student", "department", "focal_person_intermediate"],
   courseMaterials: ["admin", "faculty", "student"],
   assignments: ["admin", "faculty", "student"],
   announcements: ["admin", "principal", "department", "faculty"],
@@ -33,9 +33,11 @@ export const RESOURCE_ROLES = {
   scholarships: ["admin", "administration"],
   feeStructures: ["admin", "principal"],
   feeManagement: ["admin", "administration"],
-  departmentFees: ["admin", "department"],
+  departmentFees: ["admin", "department", "focal_person_intermediate"],
   bankAccounts: ["admin", "principal", "administration"],
   shifts: ["admin", "principal"],
+  groups: ["admin", "principal", "focal_person_intermediate"],
+  sections: ["admin", "principal", "focal_person_intermediate"],
   courseFileReports: ["admin", "faculty", "department"],
   roleManagement: ["admin"],
   userManagement: ["admin"],

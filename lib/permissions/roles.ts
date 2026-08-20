@@ -14,6 +14,12 @@ export const USER_ROLES = [
   "coordinator",
   "principal",
   "administration",
+  // Shift Management Phase 2 — a genuinely new role, not a reuse/rename of
+  // "department": HOD-equivalent authority scoped only to Intermediate
+  // students. Isolation from BS departments is enforced by a real
+  // "Intermediate" department row + the existing department_id scoping,
+  // not a parallel mechanism. See docs/MIGRATION_PLAN.md.
+  "focal_person_intermediate",
   // HED hierarchy (Phase 15) — additive, none of the 8 roles above change
   // meaning or scope. See docs/MIGRATION_PLAN.md §9.
   "hed_admin",
@@ -36,6 +42,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   coordinator: "Coordinator",
   principal: "Principal",
   administration: "Administration",
+  focal_person_intermediate: "Focal Person (Intermediate)",
   hed_admin: "HED Administrator",
   directorate_admin: "Directorate Administrator",
   jmc_admin: "JMC Administrator",
@@ -51,6 +58,7 @@ export const ROLE_DASHBOARD_PATH: Record<UserRole, string> = {
   coordinator: "/dashboard/coordinator",
   principal: "/dashboard/principal",
   administration: "/dashboard/administration",
+  focal_person_intermediate: "/dashboard/focal-person",
   hed_admin: "/dashboard/hed",
   directorate_admin: "/dashboard/directorate",
   jmc_admin: "/dashboard/jmc",

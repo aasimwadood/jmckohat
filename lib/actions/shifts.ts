@@ -54,7 +54,7 @@ export async function deleteShiftAction(formData: FormData): Promise<ActionResul
 }
 
 export async function assignAdmissionShiftAction(formData: FormData): Promise<ActionResult> {
-  await requireRole("admin", "department", "faculty");
+  await requireRole("admin", "department", "faculty", "focal_person_intermediate");
 
   const admissionId = formData.get("admissionId");
   const shiftId = formData.get("shiftId");

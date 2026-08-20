@@ -53,7 +53,7 @@ export async function upsertFeeStructureAction(formData: FormData): Promise<Acti
 }
 
 export async function generateFeeVoucherAction(formData: FormData): Promise<ActionResult> {
-  const profile = await requireRole("student", "department", "admin");
+  const profile = await requireRole("student", "department", "admin", "focal_person_intermediate");
 
   const parsed = generateVoucherSchema.safeParse({
     promotionId: formData.get("promotionId"),
@@ -75,7 +75,7 @@ export async function generateFeeVoucherAction(formData: FormData): Promise<Acti
 }
 
 export async function generateAdmissionFeeVoucherAction(formData: FormData): Promise<ActionResult> {
-  const profile = await requireRole("department", "faculty", "admin");
+  const profile = await requireRole("department", "faculty", "admin", "focal_person_intermediate");
 
   const parsed = generateAdmissionVoucherSchema.safeParse({
     admissionId: formData.get("admissionId"),

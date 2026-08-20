@@ -37,14 +37,14 @@ export function PromotionsView({
   promotions,
   availableCourses,
 }: {
-  role: "department" | "administration" | "admin";
+  role: "department" | "administration" | "admin" | "focal_person_intermediate";
   departmentId: string;
   promotions: PromotionRow[];
   availableCourses: { id: string; code: string; title: string }[];
 }) {
   const [isPending, startTransition] = useTransition();
-  const canStartCycle = role === "department" || role === "admin";
-  const canRegister = role === "department" || role === "admin";
+  const canStartCycle = role === "department" || role === "admin" || role === "focal_person_intermediate";
+  const canRegister = role === "department" || role === "admin" || role === "focal_person_intermediate";
   const canVerifyFee = role === "administration" || role === "admin";
 
   const startCycle = () => {
