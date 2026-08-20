@@ -1,29 +1,40 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 
+// Three tear-off copies (Bank / College / Student) stacked on one A4 sheet,
+// matching how a real bank fee challan is printed and processed: the payer
+// hands the whole sheet to the bank teller, who keeps the Bank Copy, stamps
+// the other two, retains the College Copy for the institution's records
+// (submitted by the student later), and returns the Student Copy as proof
+// of payment.
+
 const styles = StyleSheet.create({
-  page: { padding: 36, fontSize: 10, fontFamily: "Helvetica", color: "#111827" },
-  header: { flexDirection: "row", alignItems: "center", borderBottom: "2pt solid #111827", paddingBottom: 12, marginBottom: 16 },
-  logo: { width: 48, height: 48, marginRight: 12 },
-  collegeName: { fontSize: 16, fontWeight: 700 },
-  collegeMeta: { fontSize: 9, color: "#4b5563", marginTop: 2 },
-  title: { fontSize: 12, fontWeight: 700, textAlign: "center", marginBottom: 16, textTransform: "uppercase" },
-  section: { marginBottom: 14 },
-  sectionTitle: { fontSize: 10, fontWeight: 700, marginBottom: 6, color: "#374151" },
-  row: { flexDirection: "row", marginBottom: 3 },
-  label: { width: 130, color: "#6b7280" },
-  value: { flex: 1, fontWeight: 500 },
-  table: { border: "1pt solid #d1d5db", marginTop: 4 },
+  page: { padding: 14, fontFamily: "Helvetica", color: "#111827" },
+  copy: { border: "1pt solid #111827", padding: 7, marginBottom: 5 },
+  copyHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
+  copyHeaderLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
+  logo: { width: 26, height: 26, marginRight: 6 },
+  collegeName: { fontSize: 10.5, fontWeight: 700 },
+  collegeMeta: { fontSize: 6, color: "#4b5563" },
+  copyLabel: { fontSize: 8.5, fontWeight: 700, border: "1pt solid #111827", paddingVertical: 2, paddingHorizontal: 7, textTransform: "uppercase" },
+  title: { fontSize: 8.5, fontWeight: 700, textAlign: "center", marginBottom: 4, textTransform: "uppercase", color: "#374151" },
+  infoGrid: { flexDirection: "row", marginBottom: 3 },
+  infoCell: { flex: 1 },
+  infoLabel: { fontSize: 6, color: "#6b7280" },
+  infoValue: { fontSize: 7.5, fontWeight: 500 },
+  table: { border: "1pt solid #d1d5db", marginTop: 4, marginBottom: 3 },
   tableRow: { flexDirection: "row", borderBottom: "1pt solid #d1d5db" },
   tableRowLast: { flexDirection: "row" },
-  tableHeaderCell: { flex: 1, padding: 6, backgroundColor: "#f3f4f6", fontWeight: 700, fontSize: 9 },
-  tableCell: { flex: 1, padding: 6, fontSize: 9 },
-  tableCellRight: { flex: 1, padding: 6, fontSize: 9, textAlign: "right" },
-  totalRow: { flexDirection: "row", borderTop: "2pt solid #111827", marginTop: 2 },
-  totalLabel: { flex: 1, padding: 6, fontWeight: 700, fontSize: 10 },
-  totalValue: { flex: 1, padding: 6, fontWeight: 700, fontSize: 10, textAlign: "right" },
-  instructions: { fontSize: 8.5, color: "#4b5563", marginTop: 20, lineHeight: 1.5 },
-  footer: { position: "absolute", bottom: 30, left: 36, right: 36, fontSize: 8, color: "#9ca3af", textAlign: "center" },
-  watermark: { position: "absolute", top: 40, right: 36, fontSize: 8, color: "#dc2626", border: "1pt solid #dc2626", padding: "3pt 8pt" },
+  tableHeaderCell: { flex: 1, padding: 2.5, backgroundColor: "#f3f4f6", fontWeight: 700, fontSize: 6.5 },
+  tableCell: { flex: 1, padding: 2.5, fontSize: 7 },
+  tableCellRight: { flex: 0.5, padding: 2.5, fontSize: 7, textAlign: "right" },
+  totalRow: { flexDirection: "row", borderTop: "1.5pt solid #111827" },
+  totalLabel: { flex: 1, padding: 2.5, fontWeight: 700, fontSize: 7.5 },
+  totalValue: { flex: 0.5, padding: 2.5, fontWeight: 700, fontSize: 7.5, textAlign: "right" },
+  footerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 4 },
+  instructions: { fontSize: 5.5, color: "#4b5563", flex: 1, marginRight: 8, lineHeight: 1.35 },
+  stampBox: { width: 110, height: 22, border: "1pt dashed #9ca3af", justifyContent: "center", alignItems: "center" },
+  stampLabel: { fontSize: 5.5, color: "#9ca3af" },
+  watermark: { position: "absolute", top: 4, right: 8, fontSize: 6.5, color: "#dc2626", border: "1pt solid #dc2626", padding: "1pt 4pt" },
 });
 
 export type VoucherPdfData = {
@@ -51,14 +62,23 @@ function formatPkr(amount: number) {
   return `PKR ${amount.toLocaleString("en-PK")}`;
 }
 
-export function VoucherDocument({ data }: { data: VoucherPdfData }) {
+function InfoField({ label, value }: { label: string; value: string }) {
   return (
-    <Document title={`Fee Voucher ${data.voucherNumber}`}>
-      <Page size="A4" style={styles.page}>
-        {data.status === "verified" && <Text style={styles.watermark}>PAID</Text>}
-        {data.status === "canceled" && <Text style={styles.watermark}>CANCELED</Text>}
+    <View style={styles.infoCell}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  );
+}
 
-        <View style={styles.header}>
+function VoucherCopy({ data, copyLabel }: { data: VoucherPdfData; copyLabel: string }) {
+  return (
+    <View style={styles.copy} wrap={false}>
+      {data.status === "verified" && <Text style={styles.watermark}>PAID</Text>}
+      {data.status === "canceled" && <Text style={styles.watermark}>CANCELED</Text>}
+
+      <View style={styles.copyHeader}>
+        <View style={styles.copyHeaderLeft}>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer's Image is not an HTML <img>, it doesn't accept alt */}
           {data.logoDataUri && <Image src={data.logoDataUri} style={styles.logo} />}
           <View>
@@ -67,81 +87,64 @@ export function VoucherDocument({ data }: { data: VoucherPdfData }) {
             {data.collegeContact && <Text style={styles.collegeMeta}>{data.collegeContact}</Text>}
           </View>
         </View>
+        <Text style={styles.copyLabel}>{copyLabel}</Text>
+      </View>
 
-        <Text style={styles.title}>Fee Voucher</Text>
+      <Text style={styles.title}>Fee Voucher</Text>
 
-        <View style={styles.section}>
-          <View style={styles.row}>
-            <Text style={styles.label}>Voucher Number</Text>
-            <Text style={styles.value}>{data.voucherNumber}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Generated On</Text>
-            <Text style={styles.value}>{data.generatedAt}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Due Date</Text>
-            <Text style={styles.value}>{data.dueDate}</Text>
-          </View>
+      <View style={styles.infoGrid}>
+        <InfoField label="Voucher Number" value={data.voucherNumber} />
+        <InfoField label="Due Date" value={data.dueDate} />
+        <InfoField label="Registration Number" value={data.registrationNumber ?? "—"} />
+      </View>
+      <View style={styles.infoGrid}>
+        <InfoField label="Student Name" value={data.studentName} />
+        <InfoField label="Father's Name" value={data.fatherName ?? "—"} />
+        <InfoField label="Program / Department" value={`${data.programName}, ${data.departmentName}`} />
+      </View>
+      <View style={styles.infoGrid}>
+        <InfoField label="Semester / Session" value={`${data.semesterLabel} — ${data.academicSession}`} />
+        <InfoField label="Generated On" value={data.generatedAt} />
+        <View style={styles.infoCell} />
+      </View>
+
+      <View style={styles.table}>
+        <View style={styles.tableRow}>
+          <Text style={styles.tableHeaderCell}>Component</Text>
+          <Text style={[styles.tableHeaderCell, { textAlign: "right", flex: 0.5 }]}>Amount</Text>
         </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Student Information</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Student Name</Text>
-            <Text style={styles.value}>{data.studentName}</Text>
+        {data.components.map((c, i) => (
+          <View key={i} style={i === data.components.length - 1 ? styles.tableRowLast : styles.tableRow}>
+            <Text style={styles.tableCell}>{c.name}</Text>
+            <Text style={styles.tableCellRight}>{formatPkr(c.amount)}</Text>
           </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Father&apos;s Name</Text>
-            <Text style={styles.value}>{data.fatherName ?? "—"}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Registration Number</Text>
-            <Text style={styles.value}>{data.registrationNumber ?? "—"}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Program</Text>
-            <Text style={styles.value}>{data.programName}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Department</Text>
-            <Text style={styles.value}>{data.departmentName}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Semester / Session</Text>
-            <Text style={styles.value}>
-              {data.semesterLabel} — {data.academicSession}
-            </Text>
-          </View>
+        ))}
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Total Payable</Text>
+          <Text style={styles.totalValue}>{formatPkr(data.totalAmount)}</Text>
         </View>
+      </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fee Details</Text>
-          <View style={styles.table}>
-            <View style={styles.tableRow}>
-              <Text style={styles.tableHeaderCell}>Component</Text>
-              <Text style={[styles.tableHeaderCell, { textAlign: "right", flex: 0.5 }]}>Amount</Text>
-            </View>
-            {data.components.map((c, i) => (
-              <View key={i} style={i === data.components.length - 1 ? styles.tableRowLast : styles.tableRow}>
-                <Text style={styles.tableCell}>{c.name}</Text>
-                <Text style={[styles.tableCellRight, { flex: 0.5 }]}>{formatPkr(c.amount)}</Text>
-              </View>
-            ))}
-          </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Payable</Text>
-            <Text style={[styles.totalValue, { flex: 0.5 }]}>{formatPkr(data.totalAmount)}</Text>
-          </View>
-        </View>
-
+      <View style={styles.footerRow}>
         <Text style={styles.instructions}>
-          Pay this exact amount at any designated bank branch on or before the due date shown above, quoting the Voucher
-          Number as the payment reference. This voucher is system-generated and is not valid if altered. Retain the bank-
-          stamped copy as proof of payment until your fee status is confirmed as Verified on the student portal.
+          Pay this exact amount at any designated bank branch on or before the due date, quoting the Voucher Number as
+          the payment reference. Not valid if altered. This is a computer-generated document.
         </Text>
+        <View style={styles.stampBox}>
+          <Text style={styles.stampLabel}>Bank Stamp & Signature</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
 
-        <Text style={styles.footer}>Generated by the college management system — {data.collegeName}</Text>
+export function VoucherDocument({ data }: { data: VoucherPdfData }) {
+  return (
+    <Document title={`Fee Voucher ${data.voucherNumber}`}>
+      <Page size="A4" style={styles.page}>
+        <VoucherCopy data={data} copyLabel="Bank Copy" />
+        <VoucherCopy data={data} copyLabel="College Copy" />
+        <VoucherCopy data={data} copyLabel="Student Copy" />
       </Page>
     </Document>
   );
