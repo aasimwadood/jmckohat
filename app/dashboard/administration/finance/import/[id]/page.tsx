@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmImportButton } from "@/components/features/fees/confirm-import-button";
 import { ResolveVoucherDialog } from "@/components/features/fees/resolve-voucher-dialog";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 const ROW_STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   valid: "secondary",
@@ -45,6 +46,8 @@ export default async function BankImportDetailPage({ params }: { params: Promise
 
   return (
     <div className="space-y-6">
+      <LiveRefresh table="fee_bank_imports" filter={`id=eq.${id}`} />
+      <LiveRefresh table="fee_bank_import_rows" filter={`import_id=eq.${id}`} />
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

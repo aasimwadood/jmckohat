@@ -21,17 +21,37 @@ export function LiveRefresh({ table, filter }: { table: RealtimeTable; filter?: 
 
   useEffect(() => {
     const supabase = createClient();
-    const channel = supabase
-      .channel(`live-refresh-${table}-${filter ?? "all"}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table, ...(filter ? { filter } : {}) },
-        () => router.refresh(),
-      )
-      .subscribe();
+    let cancelled = false;
+    let cleanup = () => {};
+
+    // Realtime's postgres_changes filtering is evaluated server-side against
+    // this socket's own JWT via RLS — the browser client's ordinary auth
+    // session (cookie-based, used for every other request) is NOT
+    // automatically forwarded to the realtime connection. Without this
+    // explicit setAuth call, .subscribe() reports SUBSCRIBED successfully
+    // but the connection is effectively anonymous, so RLS silently filters
+    // out every row and no event is ever delivered — found live-verifying
+    // the Fee Management feature: the channel subscribed fine, the DB write
+    // was correct, but no browser tab ever refreshed.
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled || !data.session) return;
+      supabase.realtime.setAuth(data.session.access_token);
+
+      const channel = supabase
+        .channel(`live-refresh-${table}-${filter ?? "all"}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table, ...(filter ? { filter } : {}) },
+          () => router.refresh(),
+        )
+        .subscribe();
+
+      cleanup = () => supabase.removeChannel(channel);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      cleanup();
     };
   }, [table, filter, router]);
 

@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { GenerateFeeButton } from "@/components/features/fees/generate-fee-button";
 import { VoucherStatusBadge } from "@/components/features/fees/voucher-status-badge";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function StudentFeesPage() {
   const profile = await requireRole("student");
@@ -33,6 +34,8 @@ export default async function StudentFeesPage() {
 
   return (
     <div className="space-y-6">
+      <LiveRefresh table="fee_vouchers" filter={`student_profile_id=eq.${profile.id}`} />
+      <LiveRefresh table="promotions" filter={`student_profile_id=eq.${profile.id}`} />
       <Card>
         <CardHeader>
           <CardTitle>Current Semester Fee</CardTitle>

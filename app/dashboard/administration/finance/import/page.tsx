@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { BankImportUploadForm } from "@/components/features/fees/bank-import-upload-form";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function BankImportPage() {
   await requireRole("administration", "admin");
@@ -18,6 +19,7 @@ export default async function BankImportPage() {
 
   return (
     <div className="space-y-6">
+      <LiveRefresh table="fee_bank_imports" />
       <Card>
         <CardHeader>
           <CardTitle>Upload Bank Excel</CardTitle>

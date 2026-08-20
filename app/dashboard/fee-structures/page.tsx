@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { FeeStructureForm } from "@/components/features/fees/fee-structure-form";
 import { semesterLabel } from "@/lib/utils/degree-level";
+import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 
 export default async function FeeStructuresPage() {
   await requireRole("admin", "principal");
@@ -43,6 +44,7 @@ export default async function FeeStructuresPage() {
 
   return (
     <div className="space-y-6">
+      <LiveRefresh table="fee_structures" />
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

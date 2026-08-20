@@ -9,7 +9,7 @@ const NAVIGATION: DashboardNavItem[] = [
   { name: "Dashboard", icon: "LayoutDashboard", href: "/dashboard/admin" },
   { name: "User Management", icon: "Users", href: "/dashboard/admin/users", resource: "userManagement" },
   { name: "Role Management", icon: "Shield", href: "/dashboard/admin/roles", resource: "roleManagement" },
-  { name: "Fee Structures", icon: "Settings", href: "/dashboard/administration/finance/structures", resource: "feeStructures" },
+  { name: "Fee Structures", icon: "Settings", href: "/dashboard/fee-structures", resource: "feeStructures" },
   { name: "Timetable", icon: "Calendar", href: "/dashboard/admin/timetable", resource: "timetable" },
   { name: "Announcements", icon: "FileText", href: "/dashboard/admin/announcements", resource: "announcements" },
   { name: "Recruitment", icon: "UserPlus", href: "/dashboard/recruitment", resource: "recruitment" },
