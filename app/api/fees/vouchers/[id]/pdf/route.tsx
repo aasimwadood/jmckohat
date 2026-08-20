@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { VoucherDocument, type VoucherPdfData } from "@/components/features/fees/voucher-document";
-import { semesterOrdinal } from "@/lib/utils/degree-level";
+import { semesterOrdinal, sessionDisplayLabel } from "@/lib/utils/degree-level";
 
 async function loadLogoDataUri(logoPath: string | null): Promise<string | null> {
   if (!logoPath) return null;
@@ -55,6 +55,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   let studentName: string;
   let fatherName: string | null;
   let registrationNumber: string | null;
+  let departmentId: string | null;
   let programId: string | null;
   let collegeId: string | null;
   let semesterNumber: number;
@@ -76,6 +77,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     studentName = student.full_name;
     fatherName = student.father_name;
     registrationNumber = student.registration_number;
+    departmentId = student.department_id;
     programId = student.program_id;
     collegeId = student.college_id;
     semesterNumber = semester?.number ?? 0;
@@ -96,14 +98,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     studentName = admission.full_name;
     fatherName = admission.father_name;
     registrationNumber = admission.registration_number ?? admission.temporary_id;
+    departmentId = admission.department_id;
     programId = admission.program_id;
     collegeId = department?.college_id ?? null;
     semesterNumber = 1;
     academicSessionId = activeSession?.id ?? null;
   }
 
-  const [{ data: program }, { data: college }, { data: bankAccounts }, { data: pendingFees }] = await Promise.all([
+  const [{ data: program }, { data: department }, { data: college }, { data: bankAccounts }, { data: pendingFees }] = await Promise.all([
     programId ? supabase.from("programs").select("name, degree_level").eq("id", programId).single() : Promise.resolve({ data: null }),
+    departmentId ? supabase.from("departments").select("name").eq("id", departmentId).single() : Promise.resolve({ data: null }),
     collegeId ? supabase.from("colleges").select("name, logo_path").eq("id", collegeId).single() : Promise.resolve({ data: null }),
     collegeId
       ? supabase.from("college_bank_accounts").select("bank_name, account_title, account_number").eq("college_id", collegeId).order("sort_order")
@@ -141,7 +145,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     fatherName,
     registrationNumber,
     discipline: `${program?.name ?? "—"} - ${semesterOrdinal(semesterNumber, program?.degree_level)}`,
-    academicSession: academicSession ?? "—",
+    departmentName: department?.name ?? "—",
+    academicSession: academicSession ? sessionDisplayLabel(semesterNumber, academicSession) : "—",
     components: components ?? [],
     totalAmount: voucher.total_amount,
     bankAccounts: (bankAccounts ?? []).map((b) => ({ bankName: b.bank_name, accountTitle: b.account_title, accountNumber: b.account_number })),

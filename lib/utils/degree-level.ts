@@ -38,3 +38,20 @@ export function semesterOrdinal(semesterNumber: number, degreeLevel: string | nu
           : "th";
   return `${semesterNumber}${suffix}`;
 }
+
+/**
+ * "Fall 2026" / "Spring 2026" for the fee voucher's session title — derived
+ * from the semester's parity (odd = Fall, even = Spring, the standard
+ * Pakistani academic-calendar convention) combined with the year embedded
+ * in the academic session's own label. `academic_sessions.label` is plain
+ * free text (e.g. "2025", sometimes already "FALL-2024") — if it already
+ * names a term, it's used as-is rather than double-prefixed; otherwise the
+ * first 4-digit year found in it is combined with the derived term.
+ */
+export function sessionDisplayLabel(semesterNumber: number, sessionLabel: string): string {
+  if (/fall|spring/i.test(sessionLabel)) return sessionLabel;
+  const year = sessionLabel.match(/\d{4}/)?.[0];
+  if (!year) return sessionLabel;
+  const term = semesterNumber % 2 === 1 ? "Fall" : "Spring";
+  return `${term} ${year}`;
+}

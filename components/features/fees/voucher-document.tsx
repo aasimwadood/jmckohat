@@ -55,6 +55,8 @@ export type VoucherPdfData = {
   registrationNumber: string | null;
   /** Program name combined with the ordinal semester/year, e.g. "BS (Hons) - 4 Year - 5th" — pre-formatted by the caller. */
   discipline: string;
+  departmentName: string;
+  /** "Fall 2026" / "Spring 2026" — pre-formatted by the caller from the semester number + session label. */
   academicSession: string;
   components: { name: string; amount: number }[];
   totalAmount: number;
@@ -111,6 +113,10 @@ function VoucherColumn({ data, copyLabel, isLast }: { data: VoucherPdfData; copy
         <Text style={styles.fieldValue}>{data.discipline}</Text>
       </View>
       <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Department</Text>
+        <Text style={styles.fieldValue}>{data.departmentName}</Text>
+      </View>
+      <View style={styles.field}>
         <Text style={styles.fieldLabel}>Fee Due Date</Text>
         <Text style={styles.fieldValue}>{data.dueDate}</Text>
       </View>
@@ -164,8 +170,9 @@ function VoucherColumn({ data, copyLabel, isLast }: { data: VoucherPdfData; copy
 
       <View style={styles.noteBox}>
         <Text style={styles.noteText}>
-          You are requested to pay this fee on or before the due date shown above to avoid a late payment fine.
-          Quote the Challan No. as the payment reference. Not valid if altered — this is a computer-generated document.
+          You are requested to pay this fee on or before the due date shown above; after the due date, a fine of Rs.
+          100/day will be applied. Quote the Challan No. as the payment reference. Not valid if altered — this is a
+          computer-generated document.
         </Text>
       </View>
 
