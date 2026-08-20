@@ -17,6 +17,7 @@ const NAVIGATION: DashboardNavItem[] = [
   { name: "Admissions", icon: "UserPlus", href: "/dashboard/focal-person/admissions", resource: "admissions" },
   { name: "Promotions", icon: "Users", href: "/dashboard/focal-person/promotions", resource: "promotions" },
   { name: "Student Fees", icon: "DollarSign", href: "/dashboard/focal-person/fees", resource: "departmentFees" },
+  { name: "Students", icon: "UsersRound", href: "/dashboard/students", resource: "students" },
   { name: "Marks Overview", icon: "FileCheck", href: "/dashboard/focal-person/marks", resource: "results" },
   { name: "Groups", icon: "Layers", href: "/dashboard/groups", resource: "groups" },
   { name: "Sections", icon: "Rows3", href: "/dashboard/sections", resource: "sections" },

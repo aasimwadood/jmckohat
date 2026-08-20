@@ -634,6 +634,8 @@ export type Database = {
       cancel_admission: { Args: { p_admission_id: string; p_reason: string }; Returns: AdmissionsRow };
       assign_admission_shift: { Args: { p_admission_id: string; p_shift_id: string | null }; Returns: AdmissionsRow };
       assign_admission_placement: { Args: { p_admission_id: string; p_group_id: string | null; p_section_id: string | null }; Returns: AdmissionsRow };
+      bulk_assign_student_shift: { Args: { p_student_ids: string[]; p_shift_id: string | null }; Returns: ProfilesRow[] };
+      bulk_assign_student_placement: { Args: { p_student_ids: string[]; p_group_id: string | null; p_section_id: string | null }; Returns: ProfilesRow[] };
       register_for_promotion: { Args: { p_promotion_id: string; p_course_ids: string[] }; Returns: PromotionsRow };
       verify_promotion_fee: { Args: { p_promotion_id: string; p_receipt_number?: string | null }; Returns: PromotionsRow };
       clear_promotion_fee: { Args: { p_promotion_id: string; p_voucher_id: string }; Returns: PromotionsRow };

@@ -38,6 +38,7 @@ export const RESOURCE_ROLES = {
   shifts: ["admin", "principal"],
   groups: ["admin", "principal", "focal_person_intermediate"],
   sections: ["admin", "principal", "focal_person_intermediate"],
+  students: ["admin", "principal", "department", "focal_person_intermediate"],
   courseFileReports: ["admin", "faculty", "department"],
   roleManagement: ["admin"],
   userManagement: ["admin"],

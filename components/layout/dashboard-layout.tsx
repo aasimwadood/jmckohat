@@ -35,6 +35,7 @@ import {
   Clock,
   Layers,
   Rows3,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   Clock,
   Layers,
   Rows3,
+  UsersRound,
 };
 
 function NavIcon({ name, className }: { name: string; className?: string }) {
