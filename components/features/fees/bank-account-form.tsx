@@ -7,20 +7,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { upsertBankAccountAction } from "@/lib/actions/bank-accounts";
 
 export function BankAccountForm({
   initial,
+  shifts = [],
 }: {
-  initial?: { id: string; bankName: string; accountTitle: string | null; accountNumber: string };
+  initial?: { id: string; bankName: string; accountTitle: string | null; accountNumber: string; shiftId: string | null };
+  shifts?: { id: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const [shiftId, setShiftId] = useState(initial?.shiftId ?? "");
   const [isPending, startTransition] = useTransition();
 
   const submit = (formData: FormData) => {
     setError("");
     if (initial) formData.set("id", initial.id);
+    formData.set("shiftId", shiftId);
     startTransition(async () => {
       const result = await upsertBankAccountAction(formData);
       if (result?.error) setError(result.error);
@@ -63,6 +68,25 @@ export function BankAccountForm({
           <div>
             <Label htmlFor="accountNumber">Account Number *</Label>
             <Input id="accountNumber" name="accountNumber" defaultValue={initial?.accountNumber} disabled={isPending} required />
+          </div>
+          <div>
+            <Label>Shift</Label>
+            <Select value={shiftId || "none"} onValueChange={(v) => setShiftId(v === "none" ? "" : v)} disabled={isPending}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">General (all shifts)</SelectItem>
+                {shifts.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-gray-500">
+              A shift-specific account only prints on vouchers for students in that shift; General prints on every voucher.
+            </p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>

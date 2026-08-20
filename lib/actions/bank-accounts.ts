@@ -16,6 +16,7 @@ export async function upsertBankAccountAction(formData: FormData): Promise<Actio
     bankName: formData.get("bankName"),
     accountTitle: formData.get("accountTitle"),
     accountNumber: formData.get("accountNumber"),
+    shiftId: formData.get("shiftId"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
@@ -25,6 +26,7 @@ export async function upsertBankAccountAction(formData: FormData): Promise<Actio
     bank_name: parsed.data.bankName,
     account_title: parsed.data.accountTitle || null,
     account_number: parsed.data.accountNumber,
+    shift_id: parsed.data.shiftId || null,
     created_by: profile.id,
   };
 

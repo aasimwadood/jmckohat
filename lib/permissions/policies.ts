@@ -35,6 +35,7 @@ export const RESOURCE_ROLES = {
   feeManagement: ["admin", "administration"],
   departmentFees: ["admin", "department"],
   bankAccounts: ["admin", "principal", "administration"],
+  shifts: ["admin", "principal"],
   courseFileReports: ["admin", "faculty", "department"],
   roleManagement: ["admin"],
   userManagement: ["admin"],

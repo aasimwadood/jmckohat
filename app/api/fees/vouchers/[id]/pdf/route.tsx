@@ -60,12 +60,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   let collegeId: string | null;
   let semesterNumber: number;
   let academicSessionId: string | null;
+  let shiftId: string | null;
 
   if (voucher.promotion_id) {
     const { data: promotion } = await supabase.from("promotions").select("to_semester_id").eq("id", voucher.promotion_id).single();
     const { data: student } = await supabase
       .from("profiles")
-      .select("full_name, father_name, registration_number, department_id, program_id, college_id")
+      .select("full_name, father_name, registration_number, department_id, program_id, college_id, shift_id")
       .eq("id", voucher.student_profile_id!)
       .single();
     if (!student) return NextResponse.json({ error: "Voucher not found" }, { status: 404 });
@@ -82,10 +83,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     collegeId = student.college_id;
     semesterNumber = semester?.number ?? 0;
     academicSessionId = semester?.academic_session_id ?? null;
+    shiftId = student.shift_id;
   } else {
     const { data: admission } = await supabase
       .from("admissions")
-      .select("full_name, father_name, temporary_id, registration_number, department_id, program_id")
+      .select("full_name, father_name, temporary_id, registration_number, department_id, program_id, shift_id")
       .eq("id", voucher.admission_id!)
       .single();
     if (!admission) return NextResponse.json({ error: "Voucher not found" }, { status: 404 });
@@ -103,14 +105,25 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     collegeId = department?.college_id ?? null;
     semesterNumber = 1;
     academicSessionId = activeSession?.id ?? null;
+    shiftId = admission.shift_id;
   }
 
   const [{ data: program }, { data: department }, { data: college }, { data: bankAccounts }, { data: pendingFees }] = await Promise.all([
     programId ? supabase.from("programs").select("name, degree_level").eq("id", programId).single() : Promise.resolve({ data: null }),
     departmentId ? supabase.from("departments").select("name").eq("id", departmentId).single() : Promise.resolve({ data: null }),
     collegeId ? supabase.from("colleges").select("name, logo_path").eq("id", collegeId).single() : Promise.resolve({ data: null }),
+    // Shift-aware: a shift-specific account only prints for students in
+    // that shift; general (shift_id null) accounts print for everyone.
+    // A student with no shift assigned only sees general accounts.
     collegeId
-      ? supabase.from("college_bank_accounts").select("bank_name, account_title, account_number").eq("college_id", collegeId).order("sort_order")
+      ? (() => {
+          const query = supabase
+            .from("college_bank_accounts")
+            .select("bank_name, account_title, account_number")
+            .eq("college_id", collegeId)
+            .order("sort_order");
+          return shiftId ? query.or(`shift_id.eq.${shiftId},shift_id.is.null`) : query.is("shift_id", null);
+        })()
       : Promise.resolve({ data: [] }),
     // Outstanding fee (spec: a real running balance, not invented) — the
     // student's own other pending dues (hostel/transport/etc, fee_payments

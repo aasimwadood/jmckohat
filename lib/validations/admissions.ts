@@ -20,6 +20,7 @@ export const createAdmissionSchema = z.object({
   email: z.string().trim().email("Enter a valid email").optional().or(z.literal("")),
   meritCategory: z.enum(MERIT_CATEGORIES),
   meritNumber: z.coerce.number().int().optional(),
+  shiftId: z.string().uuid().optional().or(z.literal("")),
 });
 
 export const approveFeeSchema = z.object({

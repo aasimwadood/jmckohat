@@ -14,6 +14,7 @@ export type AdmissionRow = {
   registrationNumber: string | null;
   feeReceiptNumber: string | null;
   totalFee: number;
+  shiftId: string | null;
   voucher: { id: string; voucherNumber: string; status: "unpaid" | "verified" | "canceled" } | null;
 };
 

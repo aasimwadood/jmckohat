@@ -19,7 +19,7 @@ export default async function DepartmentAdmissionsPage() {
 
   const { data: activeSession } = await supabase.from("academic_sessions").select("id").eq("is_active", true).single();
 
-  const [{ data: settings }, { data: programs }, { data: admissions }] = await Promise.all([
+  const [{ data: settings }, { data: programs }, { data: admissions }, { data: shifts }] = await Promise.all([
     activeSession
       ? supabase
           .from("admission_settings")
@@ -30,6 +30,9 @@ export default async function DepartmentAdmissionsPage() {
       : Promise.resolve({ data: null }),
     supabase.from("programs").select("id, name").eq("department_id", profile.departmentId),
     supabase.from("admissions").select("*").eq("department_id", profile.departmentId).order("created_at", { ascending: false }),
+    profile.collegeId
+      ? supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order")
+      : Promise.resolve({ data: [] }),
   ]);
 
   const programNames = new Map((programs ?? []).map((p) => [p.id, p.name]));
@@ -56,6 +59,7 @@ export default async function DepartmentAdmissionsPage() {
     feeReceiptNumber: a.fee_receipt_number,
     totalFee:
       a.registration_fee + a.crf_fee + a.admission_fee + a.tuition_fee + a.examination_fee + a.hostel_fee + a.transport_fee,
+    shiftId: a.shift_id,
     voucher: (() => {
       const v = voucherByAdmission.get(a.id);
       return v ? { id: v.id, voucherNumber: v.voucher_number, status: v.status } : null;
@@ -71,6 +75,7 @@ export default async function DepartmentAdmissionsPage() {
         academicSessionId={activeSession?.id ?? null}
         isEnabled={settings?.is_enabled ?? false}
         programs={programs ?? []}
+        shifts={shifts ?? []}
         admissions={rows}
       />
     </>

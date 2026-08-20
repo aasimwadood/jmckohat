@@ -10,9 +10,14 @@ export default async function BankAccountsPage() {
   const profile = await requireRole("admin", "principal", "administration");
   const supabase = await createClient();
 
-  const { data: accounts } = profile.collegeId
-    ? await supabase.from("college_bank_accounts").select("*").eq("college_id", profile.collegeId).order("sort_order")
-    : { data: [] };
+  const [{ data: accounts }, { data: shifts }] = profile.collegeId
+    ? await Promise.all([
+        supabase.from("college_bank_accounts").select("*").eq("college_id", profile.collegeId).order("sort_order"),
+        supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order"),
+      ])
+    : [{ data: [] }, { data: [] }];
+
+  const shiftName = new Map((shifts ?? []).map((s) => [s.id, s.name]));
 
   return (
     <div className="space-y-6">
@@ -24,7 +29,7 @@ export default async function BankAccountsPage() {
               <CardTitle>Bank Accounts</CardTitle>
               <p className="mt-1 text-sm text-gray-500">Printed on every student&apos;s fee voucher — add every account the college accepts payment into.</p>
             </div>
-            <BankAccountForm />
+            <BankAccountForm shifts={shifts ?? []} />
           </div>
         </CardHeader>
         <CardContent>
@@ -34,6 +39,7 @@ export default async function BankAccountsPage() {
                 <TableHead>Bank</TableHead>
                 <TableHead>Account Title</TableHead>
                 <TableHead>Account Number</TableHead>
+                <TableHead>Shift</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -43,9 +49,13 @@ export default async function BankAccountsPage() {
                   <TableCell className="font-medium">{a.bank_name}</TableCell>
                   <TableCell>{a.account_title ?? "—"}</TableCell>
                   <TableCell>{a.account_number}</TableCell>
+                  <TableCell>{a.shift_id ? (shiftName.get(a.shift_id) ?? "—") : "General (all shifts)"}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <BankAccountForm initial={{ id: a.id, bankName: a.bank_name, accountTitle: a.account_title, accountNumber: a.account_number }} />
+                      <BankAccountForm
+                        initial={{ id: a.id, bankName: a.bank_name, accountTitle: a.account_title, accountNumber: a.account_number, shiftId: a.shift_id }}
+                        shifts={shifts ?? []}
+                      />
                       <DeleteBankAccountButton id={a.id} />
                     </div>
                   </TableCell>
@@ -53,7 +63,7 @@ export default async function BankAccountsPage() {
               ))}
               {(!accounts || accounts.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-8 text-center text-gray-500">
+                  <TableCell colSpan={5} className="py-8 text-center text-gray-500">
                     No bank accounts configured yet — vouchers will print without a payment account until one is added.
                   </TableCell>
                 </TableRow>

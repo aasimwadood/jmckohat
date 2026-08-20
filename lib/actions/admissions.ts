@@ -57,6 +57,7 @@ export async function createAdmissionAction(formData: FormData): Promise<ActionR
     email: formData.get("email"),
     meritCategory: formData.get("meritCategory"),
     meritNumber: formData.get("meritNumber"),
+    shiftId: formData.get("shiftId"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -76,6 +77,7 @@ export async function createAdmissionAction(formData: FormData): Promise<ActionR
       email: parsed.data.email || null,
       merit_category: parsed.data.meritCategory,
       merit_number: parsed.data.meritNumber ?? null,
+      shift_id: parsed.data.shiftId || null,
       created_by: profile.id,
     })
     .select("id")

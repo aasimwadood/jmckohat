@@ -21,6 +21,7 @@ import {
   uploadAdmissionDocumentAction,
   type AdmissionDocumentRow,
 } from "@/lib/actions/admissions";
+import { assignAdmissionShiftAction } from "@/lib/actions/shifts";
 import { generateAdmissionFeeVoucherAction } from "@/lib/actions/fees";
 import { MERIT_CATEGORIES } from "@/lib/validations/admissions";
 import type { AdmissionRow, AdmissionViewRole } from "./types";
@@ -54,6 +55,7 @@ export function AdmissionsView({
   academicSessionId,
   isEnabled,
   programs,
+  shifts,
   admissions,
 }: {
   role: AdmissionViewRole;
@@ -61,6 +63,7 @@ export function AdmissionsView({
   academicSessionId: string | null;
   isEnabled: boolean;
   programs: { id: string; name: string }[];
+  shifts: { id: string; name: string }[];
   admissions: AdmissionRow[];
 }) {
   const canManageSettings = role === "department" || role === "admin";
@@ -80,7 +83,7 @@ export function AdmissionsView({
           <div className="flex items-center justify-between">
             <CardTitle>Admissions</CardTitle>
             {canAddStudent && isEnabled && (
-              <AddStudentDialog departmentId={departmentId} programs={programs} />
+              <AddStudentDialog departmentId={departmentId} programs={programs} shifts={shifts} />
             )}
           </div>
         </CardHeader>
@@ -97,6 +100,7 @@ export function AdmissionsView({
                 <TableHead>Merit Category</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Reg. #</TableHead>
+                <TableHead>Shift</TableHead>
                 <TableHead>Fee Voucher</TableHead>
                 <TableHead>Documents</TableHead>
                 <TableHead>Action</TableHead>
@@ -117,6 +121,9 @@ export function AdmissionsView({
                   </TableCell>
                   <TableCell>{admission.registrationNumber ?? "—"}</TableCell>
                   <TableCell>
+                    <ShiftCell admission={admission} shifts={shifts} canEdit={canAddStudent} />
+                  </TableCell>
+                  <TableCell>
                     <FeeVoucherCell admission={admission} canGenerate={canAddStudent} />
                   </TableCell>
                   <TableCell>
@@ -133,7 +140,7 @@ export function AdmissionsView({
               ))}
               {admissions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-gray-500">
+                  <TableCell colSpan={8} className="py-8 text-center text-gray-500">
                     No admission records yet.
                   </TableCell>
                 </TableRow>
@@ -181,10 +188,19 @@ function AdmissionSettingsCard({
   );
 }
 
-function AddStudentDialog({ departmentId, programs }: { departmentId: string; programs: { id: string; name: string }[] }) {
+function AddStudentDialog({
+  departmentId,
+  programs,
+  shifts,
+}: {
+  departmentId: string;
+  programs: { id: string; name: string }[];
+  shifts: { id: string; name: string }[];
+}) {
   const [open, setOpen] = useState(false);
   const [meritCategory, setMeritCategory] = useState("open_merit");
   const [programId, setProgramId] = useState("");
+  const [shiftId, setShiftId] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -193,6 +209,7 @@ function AddStudentDialog({ departmentId, programs }: { departmentId: string; pr
     formData.set("departmentId", departmentId);
     formData.set("meritCategory", meritCategory);
     formData.set("programId", programId);
+    formData.set("shiftId", shiftId);
     startTransition(async () => {
       const result = await createAdmissionAction(formData);
       if (result?.error) setError(result.error);
@@ -251,6 +268,24 @@ function AddStudentDialog({ departmentId, programs }: { departmentId: string; pr
               </Select>
             </div>
           )}
+          {shifts.length > 0 && (
+            <div>
+              <Label>Shift</Label>
+              <Select value={shiftId || "none"} onValueChange={(v) => setShiftId(v === "none" ? "" : v)} disabled={isPending}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a shift" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {shifts.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div>
             <Label>Merit Category</Label>
             <Select value={meritCategory} onValueChange={setMeritCategory} disabled={isPending}>
@@ -282,6 +317,49 @@ function AddStudentDialog({ departmentId, programs }: { departmentId: string; pr
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ShiftCell({
+  admission,
+  shifts,
+  canEdit,
+}: {
+  admission: AdmissionRow;
+  shifts: { id: string; name: string }[];
+  canEdit: boolean;
+}) {
+  const [isPending, startTransition] = useTransition();
+
+  const assign = (value: string) => {
+    const formData = new FormData();
+    formData.set("admissionId", admission.id);
+    formData.set("shiftId", value === "none" ? "" : value);
+    startTransition(async () => {
+      const result = await assignAdmissionShiftAction(formData);
+      if (result?.error) toast.error(result.error);
+      else toast.success("Shift updated");
+    });
+  };
+
+  if (!canEdit || shifts.length === 0) {
+    return <span className="text-sm text-gray-600">{shifts.find((s) => s.id === admission.shiftId)?.name ?? "—"}</span>;
+  }
+
+  return (
+    <Select value={admission.shiftId ?? "none"} onValueChange={assign} disabled={isPending}>
+      <SelectTrigger className="h-8 w-[130px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="none">Unassigned</SelectItem>
+        {shifts.map((s) => (
+          <SelectItem key={s.id} value={s.id}>
+            {s.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

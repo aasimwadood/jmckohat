@@ -32,6 +32,7 @@ import {
   CheckCircle,
   User,
   Sparkles,
+  Clock,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   Upload,
   CheckCircle,
   User,
+  Clock,
 };
 
 function NavIcon({ name, className }: { name: string; className?: string }) {
