@@ -14,6 +14,7 @@ const NAVIGATION: DashboardNavItem[] = [
   { name: "Fee Verification", icon: "UserPlus", href: "/dashboard/administration/admissions", resource: "admissions" },
   { name: "Finance & Fees", icon: "DollarSign", href: "/dashboard/administration/finance" },
   { name: "Bank Import", icon: "Upload", href: "/dashboard/administration/finance/import", resource: "feeManagement" },
+  { name: "Bank Accounts", icon: "Landmark", href: "/dashboard/bank-accounts", resource: "bankAccounts" },
   { name: "Library", icon: "BookOpen", href: "/dashboard/administration/library", resource: "library" },
   { name: "Helpdesk", icon: "HelpCircle", href: "/dashboard/administration/helpdesk", resource: "supportTickets" },
   { name: "Events & Facilities", icon: "Calendar", href: "/dashboard/administration/events", resource: "campusEvents" },

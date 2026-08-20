@@ -10,6 +10,7 @@ const NAVIGATION: DashboardNavItem[] = [
   { name: "Academic Performance", icon: "TrendingUp", href: "/dashboard/principal/academic" },
   { name: "Financial", icon: "DollarSign", href: "/dashboard/principal/financial" },
   { name: "Fee Structures", icon: "Settings", href: "/dashboard/fee-structures", resource: "feeStructures" },
+  { name: "Bank Accounts", icon: "Landmark", href: "/dashboard/bank-accounts", resource: "bankAccounts" },
   { name: "Departmental Reports", icon: "FileText", href: "/dashboard/principal/departments" },
   { name: "Exam Results", icon: "Award", href: "/dashboard/principal/results" },
   { name: "Announcements", icon: "Bell", href: "/dashboard/principal/announcements", resource: "announcements" },

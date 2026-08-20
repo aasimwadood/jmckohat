@@ -112,6 +112,11 @@ type CollegesRow = {
   principal_name: string | null; principal_photo_path: string | null; about_content: string | null;
   facebook_url: string | null; twitter_url: string | null; youtube_url: string | null; theme_color: string | null;
 };
+type CollegeBankAccountsRow = {
+  id: string; college_id: string; bank_name: string; account_title: string | null;
+  account_number: string; sort_order: number; created_by: string | null;
+  created_at: string; updated_at: string;
+};
 type ProgramsRow = {
   id: string; department_id: string; name: string; degree_level: string; created_at: string;
 };
@@ -500,6 +505,7 @@ export type Database = {
       directorates: Table<DirectoratesRow, "id" | "status" | "created_at" | "updated_at">;
       jmcs: Table<JmcsRow, "id" | "district" | "division" | "address" | "contact_number" | "email" | "jmc_admin_profile_id" | "status" | "created_at" | "updated_at">;
       colleges: Table<CollegesRow, "id" | "district" | "division" | "address" | "contact_number" | "email" | "college_admin_profile_id" | "status" | "created_at" | "updated_at" | "slug" | "logo_path" | "favicon_path" | "banner_path" | "principal_name" | "principal_photo_path" | "about_content" | "facebook_url" | "twitter_url" | "youtube_url" | "theme_color">;
+      college_bank_accounts: Table<CollegeBankAccountsRow, "id" | "account_title" | "sort_order" | "created_by" | "created_at" | "updated_at">;
       academic_sessions: Table<AcademicSessionsRow, "id" | "is_active" | "created_at">;
       semesters: Table<SemestersRow, "id" | "is_current" | "created_at">;
 

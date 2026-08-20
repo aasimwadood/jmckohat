@@ -22,3 +22,19 @@ export function semesterLabel(semesterNumber: number, degreeLevel: string | null
   }
   return `Semester ${semesterNumber}`;
 }
+
+/** "5th" (for the "Discipline - 5th" style used on the fee voucher); "1st Year"/"2nd Year" for Intermediate. */
+export function semesterOrdinal(semesterNumber: number, degreeLevel: string | null | undefined): string {
+  if (isIntermediateDegreeLevel(degreeLevel)) {
+    return semesterNumber === 1 ? "1st Year" : semesterNumber === 2 ? "2nd Year" : `Year ${semesterNumber}`;
+  }
+  const suffix =
+    semesterNumber % 10 === 1 && semesterNumber % 100 !== 11
+      ? "st"
+      : semesterNumber % 10 === 2 && semesterNumber % 100 !== 12
+        ? "nd"
+        : semesterNumber % 10 === 3 && semesterNumber % 100 !== 13
+          ? "rd"
+          : "th";
+  return `${semesterNumber}${suffix}`;
+}

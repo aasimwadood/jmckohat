@@ -1,46 +1,50 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 
-// Three tear-off copies (Bank / College / Student) stacked on one A4 sheet,
-// matching how a real bank fee challan is printed and processed: the payer
-// hands the whole sheet to the bank teller, who keeps the Bank Copy, stamps
-// the other two, retains the College Copy for the institution's records
-// (submitted by the student later), and returns the Student Copy as proof
-// of payment.
+// Three tear-off copies (Bank / College / Student) side by side on one
+// landscape A4 sheet, separated by a dashed vertical line — matching the
+// standard Pakistani bank fee-challan format: the payer hands the whole
+// sheet to the bank teller, who keeps the Bank Copy, stamps the other two,
+// retains the College Copy for the institution's records (submitted by the
+// student later), and returns the Student Copy as proof of payment.
 
 const styles = StyleSheet.create({
-  page: { padding: 14, fontFamily: "Helvetica", color: "#111827" },
-  copy: { border: "1pt solid #111827", padding: 7, marginBottom: 5 },
-  copyHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
-  copyHeaderLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
-  logo: { width: 26, height: 26, marginRight: 6 },
-  collegeName: { fontSize: 10.5, fontWeight: 700 },
-  collegeMeta: { fontSize: 6, color: "#4b5563" },
-  copyLabel: { fontSize: 8.5, fontWeight: 700, border: "1pt solid #111827", paddingVertical: 2, paddingHorizontal: 7, textTransform: "uppercase" },
-  title: { fontSize: 8.5, fontWeight: 700, textAlign: "center", marginBottom: 4, textTransform: "uppercase", color: "#374151" },
-  infoGrid: { flexDirection: "row", marginBottom: 3 },
-  infoCell: { flex: 1 },
-  infoLabel: { fontSize: 6, color: "#6b7280" },
-  infoValue: { fontSize: 7.5, fontWeight: 500 },
-  table: { border: "1pt solid #d1d5db", marginTop: 4, marginBottom: 3 },
-  tableRow: { flexDirection: "row", borderBottom: "1pt solid #d1d5db" },
-  tableRowLast: { flexDirection: "row" },
-  tableHeaderCell: { flex: 1, padding: 2.5, backgroundColor: "#f3f4f6", fontWeight: 700, fontSize: 6.5 },
-  tableCell: { flex: 1, padding: 2.5, fontSize: 7 },
-  tableCellRight: { flex: 0.5, padding: 2.5, fontSize: 7, textAlign: "right" },
-  totalRow: { flexDirection: "row", borderTop: "1.5pt solid #111827" },
-  totalLabel: { flex: 1, padding: 2.5, fontWeight: 700, fontSize: 7.5 },
-  totalValue: { flex: 0.5, padding: 2.5, fontWeight: 700, fontSize: 7.5, textAlign: "right" },
-  footerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 4 },
-  instructions: { fontSize: 5.5, color: "#4b5563", flex: 1, marginRight: 8, lineHeight: 1.35 },
-  stampBox: { width: 110, height: 22, border: "1pt dashed #9ca3af", justifyContent: "center", alignItems: "center" },
-  stampLabel: { fontSize: 5.5, color: "#9ca3af" },
-  watermark: { position: "absolute", top: 4, right: 8, fontSize: 6.5, color: "#dc2626", border: "1pt solid #dc2626", padding: "1pt 4pt" },
+  page: { padding: 18, fontFamily: "Helvetica", color: "#111827", flexDirection: "row" },
+  column: { flex: 1, paddingHorizontal: 11, borderRight: "1pt dashed #6b7280" },
+  columnLast: { flex: 1, paddingHorizontal: 11 },
+  logoRow: { alignItems: "center", marginBottom: 6 },
+  logo: { width: 34, height: 34, marginBottom: 3 },
+  collegeName: { fontSize: 11, fontWeight: 700, textAlign: "center" },
+  sessionTitle: { fontSize: 9.5, fontWeight: 700, textAlign: "center", textDecoration: "underline", marginTop: 2, marginBottom: 10 },
+  field: { flexDirection: "row", justifyContent: "space-between", marginBottom: 5, borderBottom: "0.5pt dotted #9ca3af", paddingBottom: 3 },
+  fieldLabel: { fontSize: 7.5, color: "#4b5563", width: "42%" },
+  fieldValue: { fontSize: 8.5, fontWeight: 500, width: "58%", textAlign: "right" },
+  sectionTitle: { fontSize: 9, fontWeight: 700, marginTop: 7, marginBottom: 4 },
+  lineItem: { flexDirection: "row", justifyContent: "space-between", marginBottom: 3 },
+  lineItemLabel: { fontSize: 8, flex: 1 },
+  lineItemValue: { fontSize: 8, textAlign: "right" },
+  subtotalRow: { flexDirection: "row", justifyContent: "space-between", borderTop: "1pt solid #111827", marginTop: 2, paddingTop: 3 },
+  subtotalLabel: { fontSize: 8.5, fontWeight: 700, flex: 1 },
+  subtotalValue: { fontSize: 8.5, fontWeight: 700, textAlign: "right" },
+  totalBox: { backgroundColor: "#111827", padding: 6, marginTop: 7, marginBottom: 7, flexDirection: "row", justifyContent: "space-between" },
+  totalBoxLabel: { fontSize: 10.5, fontWeight: 700, color: "#ffffff" },
+  totalBoxValue: { fontSize: 10.5, fontWeight: 700, color: "#ffffff" },
+  blankLine: { flexDirection: "row", marginBottom: 6, alignItems: "flex-end" },
+  blankLabel: { fontSize: 8, color: "#374151" },
+  blankUnderline: { flex: 1, borderBottom: "0.5pt solid #9ca3af", marginLeft: 5 },
+  noteBox: { border: "1pt solid #6b7280", borderRadius: 3, padding: 6, marginTop: 4, marginBottom: 7 },
+  noteText: { fontSize: 6.5, color: "#374151", lineHeight: 1.4 },
+  signatureLine: { fontSize: 7.5, color: "#374151", marginTop: 10, marginBottom: 5, borderTop: "0.5pt solid #9ca3af", paddingTop: 4 },
+  copyLabel: { backgroundColor: "#111827", color: "#ffffff", fontSize: 9.5, fontWeight: 700, textAlign: "center", paddingVertical: 4, textTransform: "uppercase" },
+  watermark: { position: "absolute", top: 8, right: 6, fontSize: 7.5, color: "#dc2626", border: "1pt solid #dc2626", padding: "1.5pt 4pt" },
+  bankNoAccounts: { fontSize: 7.5, color: "#9ca3af", fontStyle: "italic", marginBottom: 5 },
 });
+
+function formatPkr(amount: number) {
+  return `Rs. ${amount.toLocaleString("en-PK")}/-`;
+}
 
 export type VoucherPdfData = {
   collegeName: string;
-  collegeAddress: string | null;
-  collegeContact: string | null;
   logoDataUri: string | null;
   voucherNumber: string;
   status: "unpaid" | "verified" | "canceled";
@@ -49,91 +53,124 @@ export type VoucherPdfData = {
   studentName: string;
   fatherName: string | null;
   registrationNumber: string | null;
-  programName: string;
-  departmentName: string;
-  /** "Semester 3" for BS-style programs, "First Year"/"Second Year" for Intermediate — pre-formatted by the caller. */
-  semesterLabel: string;
+  /** Program name combined with the ordinal semester/year, e.g. "BS (Hons) - 4 Year - 5th" — pre-formatted by the caller. */
+  discipline: string;
   academicSession: string;
   components: { name: string; amount: number }[];
   totalAmount: number;
+  bankAccounts: { bankName: string; accountTitle: string | null; accountNumber: string }[];
+  /** The student's own other pending dues (hostel/transport/etc, from fee_payments) — genuinely outstanding, not invented. */
+  outstandingItems: { label: string; amount: number }[];
+  outstandingTotal: number;
 };
 
-function formatPkr(amount: number) {
-  return `PKR ${amount.toLocaleString("en-PK")}`;
-}
+function VoucherColumn({ data, copyLabel, isLast }: { data: VoucherPdfData; copyLabel: string; isLast: boolean }) {
+  const grandTotal = data.totalAmount + data.outstandingTotal;
 
-function InfoField({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.infoCell}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
-}
-
-function VoucherCopy({ data, copyLabel }: { data: VoucherPdfData; copyLabel: string }) {
-  return (
-    <View style={styles.copy} wrap={false}>
+    <View style={isLast ? styles.columnLast : styles.column}>
       {data.status === "verified" && <Text style={styles.watermark}>PAID</Text>}
       {data.status === "canceled" && <Text style={styles.watermark}>CANCELED</Text>}
 
-      <View style={styles.copyHeader}>
-        <View style={styles.copyHeaderLeft}>
-          {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer's Image is not an HTML <img>, it doesn't accept alt */}
-          {data.logoDataUri && <Image src={data.logoDataUri} style={styles.logo} />}
-          <View>
-            <Text style={styles.collegeName}>{data.collegeName}</Text>
-            {data.collegeAddress && <Text style={styles.collegeMeta}>{data.collegeAddress}</Text>}
-            {data.collegeContact && <Text style={styles.collegeMeta}>{data.collegeContact}</Text>}
+      <View style={styles.logoRow}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer's Image is not an HTML <img>, it doesn't accept alt */}
+        {data.logoDataUri && <Image src={data.logoDataUri} style={styles.logo} />}
+        <Text style={styles.collegeName}>{data.collegeName}</Text>
+        <Text style={styles.sessionTitle}>Fee Slip for {data.academicSession}</Text>
+      </View>
+
+      {data.bankAccounts.length === 0 ? (
+        <Text style={styles.bankNoAccounts}>No bank account configured yet</Text>
+      ) : (
+        data.bankAccounts.map((b, i) => (
+          <View key={i} style={styles.field}>
+            <Text style={styles.fieldLabel}>{b.bankName} A/C No.</Text>
+            <Text style={styles.fieldValue}>{b.accountNumber}</Text>
           </View>
+        ))
+      )}
+
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Challan No.</Text>
+        <Text style={styles.fieldValue}>{data.voucherNumber}</Text>
+      </View>
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Registration No.</Text>
+        <Text style={styles.fieldValue}>{data.registrationNumber ?? "—"}</Text>
+      </View>
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Student&apos;s Name</Text>
+        <Text style={styles.fieldValue}>{data.studentName}</Text>
+      </View>
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Father&apos;s Name</Text>
+        <Text style={styles.fieldValue}>{data.fatherName ?? "—"}</Text>
+      </View>
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Discipline</Text>
+        <Text style={styles.fieldValue}>{data.discipline}</Text>
+      </View>
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Fee Due Date</Text>
+        <Text style={styles.fieldValue}>{data.dueDate}</Text>
+      </View>
+
+      <Text style={styles.sectionTitle}>Fee Details</Text>
+      {data.components.map((c, i) => (
+        <View key={i} style={styles.lineItem}>
+          <Text style={styles.lineItemLabel}>
+            {i + 1}. {c.name}
+          </Text>
+          <Text style={styles.lineItemValue}>{formatPkr(c.amount)}</Text>
         </View>
-        <Text style={styles.copyLabel}>{copyLabel}</Text>
+      ))}
+      <View style={styles.subtotalRow}>
+        <Text style={styles.subtotalLabel}>Current Semester Fee</Text>
+        <Text style={styles.subtotalValue}>{formatPkr(data.totalAmount)}</Text>
       </View>
 
-      <Text style={styles.title}>Fee Voucher</Text>
-
-      <View style={styles.infoGrid}>
-        <InfoField label="Voucher Number" value={data.voucherNumber} />
-        <InfoField label="Due Date" value={data.dueDate} />
-        <InfoField label="Registration Number" value={data.registrationNumber ?? "—"} />
-      </View>
-      <View style={styles.infoGrid}>
-        <InfoField label="Student Name" value={data.studentName} />
-        <InfoField label="Father's Name" value={data.fatherName ?? "—"} />
-        <InfoField label="Program / Department" value={`${data.programName}, ${data.departmentName}`} />
-      </View>
-      <View style={styles.infoGrid}>
-        <InfoField label="Semester / Session" value={`${data.semesterLabel} — ${data.academicSession}`} />
-        <InfoField label="Generated On" value={data.generatedAt} />
-        <View style={styles.infoCell} />
-      </View>
-
-      <View style={styles.table}>
-        <View style={styles.tableRow}>
-          <Text style={styles.tableHeaderCell}>Component</Text>
-          <Text style={[styles.tableHeaderCell, { textAlign: "right", flex: 0.5 }]}>Amount</Text>
+      <Text style={styles.sectionTitle}>Outstanding Fee</Text>
+      {data.outstandingItems.length === 0 ? (
+        <View style={styles.lineItem}>
+          <Text style={styles.lineItemLabel}>None</Text>
+          <Text style={styles.lineItemValue}>{formatPkr(0)}</Text>
         </View>
-        {data.components.map((c, i) => (
-          <View key={i} style={i === data.components.length - 1 ? styles.tableRowLast : styles.tableRow}>
-            <Text style={styles.tableCell}>{c.name}</Text>
-            <Text style={styles.tableCellRight}>{formatPkr(c.amount)}</Text>
+      ) : (
+        data.outstandingItems.map((o, i) => (
+          <View key={i} style={styles.lineItem}>
+            <Text style={styles.lineItemLabel}>{o.label}</Text>
+            <Text style={styles.lineItemValue}>{formatPkr(o.amount)}</Text>
           </View>
-        ))}
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total Payable</Text>
-          <Text style={styles.totalValue}>{formatPkr(data.totalAmount)}</Text>
-        </View>
+        ))
+      )}
+      <View style={styles.subtotalRow}>
+        <Text style={styles.subtotalLabel}>Total Outstanding Amount</Text>
+        <Text style={styles.subtotalValue}>{formatPkr(data.outstandingTotal)}</Text>
       </View>
 
-      <View style={styles.footerRow}>
-        <Text style={styles.instructions}>
-          Pay this exact amount at any designated bank branch on or before the due date, quoting the Voucher Number as
-          the payment reference. Not valid if altered. This is a computer-generated document.
+      <View style={styles.totalBox}>
+        <Text style={styles.totalBoxLabel}>Total Fee</Text>
+        <Text style={styles.totalBoxValue}>{formatPkr(grandTotal)}</Text>
+      </View>
+
+      <View style={styles.blankLine}>
+        <Text style={styles.blankLabel}>Fine Imposed:</Text>
+        <View style={styles.blankUnderline} />
+      </View>
+      <View style={styles.blankLine}>
+        <Text style={styles.blankLabel}>Amount Paid:</Text>
+        <View style={styles.blankUnderline} />
+      </View>
+
+      <View style={styles.noteBox}>
+        <Text style={styles.noteText}>
+          You are requested to pay this fee on or before the due date shown above to avoid a late payment fine.
+          Quote the Challan No. as the payment reference. Not valid if altered — this is a computer-generated document.
         </Text>
-        <View style={styles.stampBox}>
-          <Text style={styles.stampLabel}>Bank Stamp & Signature</Text>
-        </View>
       </View>
+
+      <Text style={styles.signatureLine}>Authorized Signature / Bank Stamp</Text>
+      <Text style={styles.copyLabel}>{copyLabel}</Text>
     </View>
   );
 }
@@ -141,10 +178,10 @@ function VoucherCopy({ data, copyLabel }: { data: VoucherPdfData; copyLabel: str
 export function VoucherDocument({ data }: { data: VoucherPdfData }) {
   return (
     <Document title={`Fee Voucher ${data.voucherNumber}`}>
-      <Page size="A4" style={styles.page}>
-        <VoucherCopy data={data} copyLabel="Bank Copy" />
-        <VoucherCopy data={data} copyLabel="College Copy" />
-        <VoucherCopy data={data} copyLabel="Student Copy" />
+      <Page size="A4" orientation="landscape" style={styles.page}>
+        <VoucherColumn data={data} copyLabel="Bank Copy" isLast={false} />
+        <VoucherColumn data={data} copyLabel="College Copy" isLast={false} />
+        <VoucherColumn data={data} copyLabel="Student Copy" isLast={true} />
       </Page>
     </Document>
   );

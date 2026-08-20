@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { VoucherDocument, type VoucherPdfData } from "@/components/features/fees/voucher-document";
-import { semesterLabel } from "@/lib/utils/degree-level";
+import { semesterOrdinal } from "@/lib/utils/degree-level";
 
 async function loadLogoDataUri(logoPath: string | null): Promise<string | null> {
   if (!logoPath) return null;
@@ -55,7 +55,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   let studentName: string;
   let fatherName: string | null;
   let registrationNumber: string | null;
-  let departmentId: string | null;
   let programId: string | null;
   let collegeId: string | null;
   let semesterNumber: number;
@@ -77,7 +76,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     studentName = student.full_name;
     fatherName = student.father_name;
     registrationNumber = student.registration_number;
-    departmentId = student.department_id;
     programId = student.program_id;
     collegeId = student.college_id;
     semesterNumber = semester?.number ?? 0;
@@ -98,19 +96,27 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     studentName = admission.full_name;
     fatherName = admission.father_name;
     registrationNumber = admission.registration_number ?? admission.temporary_id;
-    departmentId = admission.department_id;
     programId = admission.program_id;
     collegeId = department?.college_id ?? null;
     semesterNumber = 1;
     academicSessionId = activeSession?.id ?? null;
   }
 
-  const [{ data: department }, { data: program }, { data: college }] = await Promise.all([
-    departmentId ? supabase.from("departments").select("name").eq("id", departmentId).single() : Promise.resolve({ data: null }),
+  const [{ data: program }, { data: college }, { data: bankAccounts }, { data: pendingFees }] = await Promise.all([
     programId ? supabase.from("programs").select("name, degree_level").eq("id", programId).single() : Promise.resolve({ data: null }),
+    collegeId ? supabase.from("colleges").select("name, logo_path").eq("id", collegeId).single() : Promise.resolve({ data: null }),
     collegeId
-      ? supabase.from("colleges").select("name, address, contact_number, logo_path").eq("id", collegeId).single()
-      : Promise.resolve({ data: null }),
+      ? supabase.from("college_bank_accounts").select("bank_name, account_title, account_number").eq("college_id", collegeId).order("sort_order")
+      : Promise.resolve({ data: [] }),
+    // Outstanding fee (spec: a real running balance, not invented) — the
+    // student's own other pending dues (hostel/transport/etc, fee_payments
+    // is a separate ledger from this semester's fee_vouchers). Only
+    // resolvable for a promotion-linked voucher, where a real account
+    // already exists; an admission-linked voucher's applicant has no
+    // profile row yet, so no other dues can exist for them.
+    voucher.student_profile_id
+      ? supabase.from("fee_payments").select("fee_type, amount").eq("student_profile_id", voucher.student_profile_id).eq("status", "pending")
+      : Promise.resolve({ data: [] }),
   ]);
 
   const academicSession = academicSessionId
@@ -119,10 +125,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const logoDataUri = await loadLogoDataUri(college?.logo_path ?? "/images/logo.png");
 
+  const outstandingItems = (pendingFees ?? []).map((f) => ({
+    label: `${f.fee_type.charAt(0).toUpperCase()}${f.fee_type.slice(1)} Fee`,
+    amount: f.amount,
+  }));
+
   const data: VoucherPdfData = {
     collegeName: college?.name ?? "GPGC Kohat",
-    collegeAddress: college?.address ?? null,
-    collegeContact: college?.contact_number ?? null,
     logoDataUri,
     voucherNumber: voucher.voucher_number,
     status: voucher.status,
@@ -131,12 +140,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     studentName,
     fatherName,
     registrationNumber,
-    programName: program?.name ?? "—",
-    departmentName: department?.name ?? "—",
-    semesterLabel: semesterLabel(semesterNumber, program?.degree_level),
+    discipline: `${program?.name ?? "—"} - ${semesterOrdinal(semesterNumber, program?.degree_level)}`,
     academicSession: academicSession ?? "—",
     components: components ?? [],
     totalAmount: voucher.total_amount,
+    bankAccounts: (bankAccounts ?? []).map((b) => ({ bankName: b.bank_name, accountTitle: b.account_title, accountNumber: b.account_number })),
+    outstandingItems,
+    outstandingTotal: outstandingItems.reduce((sum, item) => sum + item.amount, 0),
   };
 
   const buffer = await renderToBuffer(<VoucherDocument data={data} />);
