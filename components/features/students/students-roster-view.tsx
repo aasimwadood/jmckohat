@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { bulkAssignStudentShiftAction, bulkAssignStudentPlacementAction } from "@/lib/actions/students";
+import { bulkAssignStudentShiftAction, bulkAssignStudentPlacementAction, graduateStudentsAction } from "@/lib/actions/students";
 
 export type StudentRow = {
   id: string;
@@ -21,6 +21,7 @@ export type StudentRow = {
   shiftId: string | null;
   groupId: string | null;
   sectionId: string | null;
+  studentStatus: "active" | "graduated";
 };
 
 export function StudentsRosterView({
@@ -36,6 +37,7 @@ export function StudentsRosterView({
 }) {
   const [search, setSearch] = useState("");
   const [unassignedOnly, setUnassignedOnly] = useState(false);
+  const [showGraduated, setShowGraduated] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkShiftId, setBulkShiftId] = useState("");
   const [bulkGroupId, setBulkGroupId] = useState("");
@@ -50,6 +52,7 @@ export function StudentsRosterView({
   const visibleStudents = useMemo(() => {
     const q = search.trim().toLowerCase();
     return students.filter((s) => {
+      if (!showGraduated && s.studentStatus === "graduated") return false;
       if (q && !s.name.toLowerCase().includes(q)) return false;
       if (unassignedOnly) {
         const missingShift = !s.shiftId;
@@ -58,7 +61,7 @@ export function StudentsRosterView({
       }
       return true;
     });
-  }, [students, search, unassignedOnly, groups.length]);
+  }, [students, search, unassignedOnly, showGraduated, groups.length]);
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -112,6 +115,23 @@ export function StudentsRosterView({
     });
   };
 
+  const applyGraduate = () => {
+    if (selected.size === 0) {
+      toast.error("Select at least one student");
+      return;
+    }
+    const formData = new FormData();
+    selected.forEach((id) => formData.append("studentIds", id));
+    startTransition(async () => {
+      const result = await graduateStudentsAction(formData);
+      if (result?.error) toast.error(result.error);
+      else {
+        toast.success(`Marked ${selected.size} student(s) as graduated`);
+        setSelected(new Set());
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -120,6 +140,13 @@ export function StudentsRosterView({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-end gap-4">
+            <Button onClick={applyGraduate} disabled={isPending} variant="outline">
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Mark {selected.size || ""} Selected as Graduated
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-end gap-4 border-t pt-4">
             <div>
               <Label>Shift</Label>
               <Select value={bulkShiftId || "none"} onValueChange={(v) => setBulkShiftId(v === "none" ? "" : v)} disabled={isPending}>
@@ -208,6 +235,10 @@ export function StudentsRosterView({
               <Checkbox checked={unassignedOnly} onCheckedChange={(v) => setUnassignedOnly(v === true)} />
               Unassigned only
             </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={showGraduated} onCheckedChange={(v) => setShowGraduated(v === true)} />
+              Show graduated
+            </label>
           </div>
 
           {visibleStudents.length === 0 ? (
@@ -227,6 +258,7 @@ export function StudentsRosterView({
                     <TableHead>Batch</TableHead>
                     <TableHead>Shift</TableHead>
                     {groups.length > 0 && <TableHead>Group / Section</TableHead>}
+                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -259,6 +291,13 @@ export function StudentsRosterView({
                           )}
                         </TableCell>
                       )}
+                      <TableCell>
+                        {s.studentStatus === "graduated" ? (
+                          <Badge>Graduated</Badge>
+                        ) : (
+                          <span className="text-sm text-gray-400">Active</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

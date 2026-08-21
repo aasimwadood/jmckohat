@@ -25,7 +25,7 @@ export default async function CollegeAdminOverviewPage() {
         ? supabase.from("college_types").select("name").eq("id", college.college_type_id).single()
         : Promise.resolve({ data: null }),
       supabase.from("departments").select("id, name").eq("college_id", profile.collegeId),
-      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("college_id", profile.collegeId).eq("role", "student"),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("college_id", profile.collegeId).eq("role", "student").eq("student_status", "active"),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("college_id", profile.collegeId).eq("role", "faculty"),
     ]);
   const { data: directorate } = jmc

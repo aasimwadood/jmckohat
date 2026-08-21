@@ -38,6 +38,7 @@ export async function startPromotionCycleAction(departmentId: string): Promise<S
     .select("id, current_semester_id, program_id")
     .eq("department_id", departmentId)
     .eq("role", "student")
+    .eq("student_status", "active")
     .not("current_semester_id", "is", null);
 
   if (!students || students.length === 0) return { created: 0, vouchersGenerated: 0, vouchersSkipped: 0 };

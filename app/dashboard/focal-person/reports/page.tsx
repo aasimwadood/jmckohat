@@ -22,7 +22,7 @@ export default async function FocalPersonReportsPage() {
 
   const [{ data: admissions }, { data: students }, { data: courses }, { data: shifts }, { data: groups }] = await Promise.all([
     supabase.from("admissions").select("status").eq("department_id", profile.departmentId),
-    supabase.from("profiles").select("id, shift_id, group_id").eq("department_id", profile.departmentId).eq("role", "student"),
+    supabase.from("profiles").select("id, shift_id, group_id").eq("department_id", profile.departmentId).eq("role", "student").eq("student_status", "active"),
     supabase.from("courses").select("id").eq("department_id", profile.departmentId),
     profile.collegeId
       ? supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order")

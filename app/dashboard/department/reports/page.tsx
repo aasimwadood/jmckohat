@@ -24,7 +24,7 @@ export default async function DepartmentReportsPage() {
   const [{ data: results }, { data: attendanceRows }, { data: students }, { data: shifts }] = await Promise.all([
     courseIds.length > 0 ? supabase.from("results").select("course_id, total").in("course_id", courseIds) : Promise.resolve({ data: [] }),
     courseIds.length > 0 ? supabase.from("attendance").select("course_id, status").in("course_id", courseIds) : Promise.resolve({ data: [] }),
-    supabase.from("profiles").select("id, shift_id").eq("department_id", profile.departmentId).eq("role", "student"),
+    supabase.from("profiles").select("id, shift_id").eq("department_id", profile.departmentId).eq("role", "student").eq("student_status", "active"),
     profile.collegeId
       ? supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order")
       : Promise.resolve({ data: [] }),

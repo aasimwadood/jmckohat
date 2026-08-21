@@ -19,11 +19,12 @@ async function fetchAllStudents(supabase: SupabaseClient<Database>, departmentId
   const rows: {
     id: string; full_name: string; username: string; batch: string | null;
     shift_id: string | null; group_id: string | null; section_id: string | null; registration_number: string | null;
+    student_status: "active" | "graduated";
   }[] = [];
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const { data } = await supabase
       .from("profiles")
-      .select("id, full_name, username, batch, shift_id, group_id, section_id, registration_number")
+      .select("id, full_name, username, batch, shift_id, group_id, section_id, registration_number, student_status")
       .eq("department_id", departmentId)
       .eq("role", "student")
       .order("full_name")
@@ -81,6 +82,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
     shiftId: s.shift_id,
     groupId: s.group_id,
     sectionId: s.section_id,
+    studentStatus: s.student_status,
   }));
 
   return (

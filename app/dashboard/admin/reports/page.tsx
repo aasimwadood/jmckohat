@@ -9,7 +9,7 @@ export default async function AdminReportsPage() {
 
   const [{ data: departments }, { data: students }, { data: admissions }] = await Promise.all([
     supabase.from("departments").select("id, name"),
-    supabase.from("profiles").select("department_id").eq("role", "student"),
+    supabase.from("profiles").select("department_id").eq("role", "student").eq("student_status", "active"),
     supabase.from("admissions").select("status"),
   ]);
 

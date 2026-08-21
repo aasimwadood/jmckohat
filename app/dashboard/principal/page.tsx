@@ -12,7 +12,7 @@ export default async function PrincipalOverviewPage() {
 
   const [{ count: totalStudents }, { count: totalFaculty }, { data: results }, { data: fees }, { data: departments }] =
     await Promise.all([
-      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "student"),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "student").eq("student_status", "active"),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "faculty"),
       supabase.from("results").select("total"),
       supabase.from("fee_payments").select("amount, status"),
@@ -34,7 +34,7 @@ export default async function PrincipalOverviewPage() {
     { label: "Total Faculty", value: totalFaculty ?? 0, icon: Activity, suffix: "" },
   ];
 
-  const { data: studentsByDept } = await supabase.from("profiles").select("department_id").eq("role", "student");
+  const { data: studentsByDept } = await supabase.from("profiles").select("department_id").eq("role", "student").eq("student_status", "active");
   const { data: allResults } = await supabase.from("results").select("course_id, total");
   const { data: courses } = await supabase.from("courses").select("id, department_id");
   const courseDept = new Map((courses ?? []).map((c) => [c.id, c.department_id]));

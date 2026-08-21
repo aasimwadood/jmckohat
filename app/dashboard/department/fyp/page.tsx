@@ -24,7 +24,12 @@ export default async function DepartmentFypPage() {
   const [{ data: semesters }, { data: configs }, { data: students }] = await Promise.all([
     supabase.from("semesters").select("id, number").order("number"),
     supabase.from("fyp_semester_config").select("*").eq("department_id", profile.departmentId),
-    supabase.from("profiles").select("current_semester_id, batch").eq("department_id", profile.departmentId).eq("role", "student"),
+    supabase
+      .from("profiles")
+      .select("current_semester_id, batch")
+      .eq("department_id", profile.departmentId)
+      .eq("role", "student")
+      .eq("student_status", "active"),
   ]);
 
   const semesterNumberById = new Map((semesters ?? []).map((s) => [s.id, s.number]));

@@ -21,7 +21,7 @@ export default async function DepartmentOverviewPage() {
   const { data: department } = await supabase.from("departments").select("name").eq("id", profile.departmentId).single();
 
   const [{ data: students }, { data: courses }, { data: faculty }] = await Promise.all([
-    supabase.from("profiles").select("id").eq("department_id", profile.departmentId).eq("role", "student"),
+    supabase.from("profiles").select("id").eq("department_id", profile.departmentId).eq("role", "student").eq("student_status", "active"),
     supabase.from("courses").select("id").eq("department_id", profile.departmentId),
     supabase.from("profiles").select("id").eq("department_id", profile.departmentId).eq("role", "faculty"),
   ]);

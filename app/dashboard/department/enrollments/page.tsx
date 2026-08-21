@@ -46,6 +46,7 @@ export default async function DepartmentEnrollmentsPage() {
       .select("id, full_name, username, batch, current_semester_id, shift_id")
       .eq("department_id", profile.departmentId)
       .eq("role", "student")
+      .eq("student_status", "active")
       .order("full_name"),
     profile.collegeId
       ? supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order")

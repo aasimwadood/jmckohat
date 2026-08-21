@@ -10,3 +10,7 @@ export const bulkAssignStudentPlacementSchema = z.object({
   groupId: z.string().uuid().optional().or(z.literal("")),
   sectionId: z.string().uuid().optional().or(z.literal("")),
 });
+
+export const graduateStudentsSchema = z.object({
+  studentIds: z.array(z.string().uuid()).min(1, "Select at least one student"),
+});

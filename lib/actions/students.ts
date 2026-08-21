@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
-import { bulkAssignStudentShiftSchema, bulkAssignStudentPlacementSchema } from "@/lib/validations/students";
+import { bulkAssignStudentShiftSchema, bulkAssignStudentPlacementSchema, graduateStudentsSchema } from "@/lib/validations/students";
 import type { ActionResult } from "@/lib/actions/auth";
 
 export async function bulkAssignStudentShiftAction(formData: FormData): Promise<ActionResult> {
@@ -45,5 +45,23 @@ export async function bulkAssignStudentPlacementAction(formData: FormData): Prom
   if (error) return { error: error.message };
 
   revalidatePath("/dashboard/students");
+  return {};
+}
+
+export async function graduateStudentsAction(formData: FormData): Promise<ActionResult> {
+  await requireRole("admin", "department", "focal_person_intermediate");
+
+  const parsed = graduateStudentsSchema.safeParse({
+    studentIds: formData.getAll("studentIds").map(String),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("graduate_students", {
+    p_student_ids: parsed.data.studentIds,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard", "layout");
   return {};
 }

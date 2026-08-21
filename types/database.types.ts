@@ -42,6 +42,7 @@ export type FeeImportStatusEnum = "uploaded" | "previewed" | "completed";
 export type FeeImportRowStatusEnum = "valid" | "invalid" | "matched" | "amount_mismatch" | "unmatched" | "duplicate_row";
 export type StudentImportStatusEnum = "uploaded" | "previewed" | "completed";
 export type StudentImportRowStatusEnum = "valid" | "invalid" | "applied" | "skipped";
+export type StudentStatusEnum = "active" | "graduated";
 export type FypEvaluationCriterionEnum =
   | "innovation" | "technical_implementation" | "problem_solving"
   | "documentation" | "presentation_and_demo" | "teamwork";
@@ -72,6 +73,7 @@ type ProfilesRow = {
   username: string; created_at: string; updated_at: string;
   registration_number: string | null; father_name: string | null; program_id: string | null; batch: string | null;
   shift_id: string | null; group_id: string | null; section_id: string | null;
+  student_status: StudentStatusEnum;
 };
 
 // Designations: Principal/HOD-managed focal-person titles ------------------
@@ -538,7 +540,7 @@ export type Database = {
   public: {
     Tables: {
       departments: Table<DepartmentsRow, "id" | "hod_profile_id" | "description" | "image_path" | "established_year" | "labs_count" | "created_at" | "updated_at">;
-      profiles: Table<ProfilesRow, "phone" | "department_id" | "avatar_path" | "current_semester_id" | "is_active" | "directorate_id" | "jmc_id" | "college_id" | "created_at" | "updated_at" | "registration_number" | "father_name" | "program_id" | "batch" | "shift_id" | "group_id" | "section_id">;
+      profiles: Table<ProfilesRow, "phone" | "department_id" | "avatar_path" | "current_semester_id" | "is_active" | "directorate_id" | "jmc_id" | "college_id" | "created_at" | "updated_at" | "registration_number" | "father_name" | "program_id" | "batch" | "shift_id" | "group_id" | "section_id" | "student_status">;
       programs: Table<ProgramsRow, "id" | "created_at">;
 
       designation_types: Table<DesignationTypesRow, "id" | "created_at">;
@@ -658,6 +660,7 @@ export type Database = {
       assign_admission_placement: { Args: { p_admission_id: string; p_group_id: string | null; p_section_id: string | null }; Returns: AdmissionsRow };
       bulk_assign_student_shift: { Args: { p_student_ids: string[]; p_shift_id: string | null }; Returns: ProfilesRow[] };
       bulk_assign_student_placement: { Args: { p_student_ids: string[]; p_group_id: string | null; p_section_id: string | null }; Returns: ProfilesRow[] };
+      graduate_students: { Args: { p_student_ids: string[] }; Returns: ProfilesRow[] };
       register_for_promotion: { Args: { p_promotion_id: string; p_course_ids: string[] }; Returns: PromotionsRow };
       verify_promotion_fee: { Args: { p_promotion_id: string; p_receipt_number?: string | null }; Returns: PromotionsRow };
       clear_promotion_fee: { Args: { p_promotion_id: string; p_voucher_id: string }; Returns: PromotionsRow };
@@ -768,6 +771,7 @@ export type Database = {
       fee_import_row_status: FeeImportRowStatusEnum;
       student_import_status: StudentImportStatusEnum;
       student_import_row_status: StudentImportRowStatusEnum;
+      student_status: StudentStatusEnum;
       org_status: OrgStatusEnum;
       recruitment_ad_status: RecruitmentAdStatusEnum;
       recruitment_application_status: RecruitmentApplicationStatusEnum;
