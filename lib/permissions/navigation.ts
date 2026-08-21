@@ -63,6 +63,7 @@ const NAVIGATION_BY_ROLE: Partial<Record<CurrentProfile["role"], DashboardNavIte
     { name: "Groups", icon: "Layers", href: "/dashboard/groups", resource: "groups" },
     { name: "Sections", icon: "Rows3", href: "/dashboard/sections", resource: "sections" },
     { name: "Students", icon: "UsersRound", href: "/dashboard/students", resource: "students" },
+    { name: "Staff", icon: "UserPlus", href: "/dashboard/principal/users", resource: "userManagement" },
     { name: "Departmental Reports", icon: "FileText", href: "/dashboard/principal/departments" },
     { name: "Exam Results", icon: "Award", href: "/dashboard/principal/results" },
     { name: "Announcements", icon: "Bell", href: "/dashboard/principal/announcements", resource: "announcements" },

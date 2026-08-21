@@ -16,7 +16,7 @@ export type ProvisionStaffResult = { error: string; username?: undefined } | { e
  * in with the username generated below (login is username-based).
  */
 export async function provisionStaffAction(formData: FormData): Promise<ProvisionStaffResult> {
-  const caller = await requireRole("admin");
+  const caller = await requireRole("admin", "principal");
 
   const parsed = provisionStaffSchema.safeParse({
     fullName: formData.get("fullName"),

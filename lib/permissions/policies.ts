@@ -41,7 +41,7 @@ export const RESOURCE_ROLES = {
   students: ["admin", "principal", "department", "focal_person_intermediate"],
   courseFileReports: ["admin", "faculty", "department"],
   roleManagement: ["admin"],
-  userManagement: ["admin"],
+  userManagement: ["admin", "principal"],
   auditLog: ["admin"],
   siteContent: ["admin"],
   // Coordinator is the primary owner per spec; admin/principal/college_admin
