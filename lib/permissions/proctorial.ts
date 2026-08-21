@@ -32,3 +32,25 @@ export async function getProctorNavExtras(profileId: string): Promise<DashboardN
   }
   return items;
 }
+
+/**
+ * Librarian (0080) is a designation, same reasoning as Chief/Staff Proctor
+ * above — any staff role could plausibly hold it, so nav visibility can't
+ * come from the role-based filterNavByAccess map either.
+ */
+export async function getLibraryNavExtras(profileId: string): Promise<DashboardNavItem[]> {
+  const supabase = await createClient();
+  const { data: assignments } = await supabase
+    .from("designation_assignments")
+    .select("designation_type_id")
+    .eq("profile_id", profileId);
+
+  const typeIds = (assignments ?? []).map((a) => a.designation_type_id);
+  const { data: types } =
+    typeIds.length > 0
+      ? await supabase.from("designation_types").select("id, name").in("id", typeIds)
+      : { data: [] };
+
+  const titles = new Set((types ?? []).map((t) => t.name));
+  return titles.has("Librarian") ? [{ name: "Library Fines", icon: "BookOpen", href: "/dashboard/library" }] : [];
+}

@@ -20,6 +20,12 @@ export const generateAdmissionVoucherSchema = z.object({
   admissionId: z.string().uuid(),
 });
 
+export const generateCustomVoucherSchema = z.object({
+  studentId: z.string().uuid(),
+  reason: z.string().trim().min(3, "Provide a reason (at least 3 characters)"),
+  components: z.array(feeComponentSchema).min(1, "Add at least one fee component"),
+});
+
 export const manuallyClearAdmissionFeeSchema = z.object({
   admissionId: z.string().uuid(),
   reason: z.string().trim().min(5, "Provide a brief reason (at least 5 characters)"),

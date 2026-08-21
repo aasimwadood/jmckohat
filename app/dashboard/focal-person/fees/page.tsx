@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { VoucherStatusBadge } from "@/components/features/fees/voucher-status-badge";
 import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 import { ShiftFilter } from "@/components/features/students/shift-filter";
+import { CustomVoucherForm } from "@/components/features/fees/custom-voucher-form";
 
 const PROMOTION_STATUS_LABEL: Record<string, string> = {
   fee_pending: "Awaiting Fee",
@@ -31,7 +32,7 @@ export default async function FocalPersonFeesPage({ searchParams }: { searchPara
   const [{ data: students }, { data: shifts }, { data: groups }, { data: sections }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, shift_id, group_id, section_id")
+      .select("id, full_name, shift_id, group_id, section_id, registration_number")
       .eq("department_id", profile.departmentId)
       .eq("role", "student"),
     profile.collegeId
@@ -65,7 +66,12 @@ export default async function FocalPersonFeesPage({ searchParams }: { searchPara
     <div className="space-y-6">
       <LiveRefresh table="fee_vouchers" />
       <LiveRefresh table="promotions" />
-      <ShiftFilter shifts={shifts ?? []} selectedId={shiftId ?? ""} basePath="/dashboard/focal-person/fees" />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <ShiftFilter shifts={shifts ?? []} selectedId={shiftId ?? ""} basePath="/dashboard/focal-person/fees" />
+        <CustomVoucherForm
+          students={(students ?? []).map((s) => ({ id: s.id, name: s.full_name, registrationNumber: s.registration_number }))}
+        />
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Student Fee Status</CardTitle>

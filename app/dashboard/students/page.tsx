@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { StudentsRosterView, type StudentRow } from "@/components/features/students/students-roster-view";
 import { DepartmentPicker } from "@/components/features/students/department-picker";
+import { AddFineForm } from "@/components/features/fines/add-fine-form";
 import type { Database } from "@/types/database.types";
 
 // Same >1000-row PostgREST page-size cap department/enrollments/page.tsx
@@ -15,11 +16,14 @@ import type { Database } from "@/types/database.types";
 const PAGE_SIZE = 1000;
 
 async function fetchAllStudents(supabase: SupabaseClient<Database>, departmentId: string) {
-  const rows: { id: string; full_name: string; username: string; batch: string | null; shift_id: string | null; group_id: string | null; section_id: string | null }[] = [];
+  const rows: {
+    id: string; full_name: string; username: string; batch: string | null;
+    shift_id: string | null; group_id: string | null; section_id: string | null; registration_number: string | null;
+  }[] = [];
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const { data } = await supabase
       .from("profiles")
-      .select("id, full_name, username, batch, shift_id, group_id, section_id")
+      .select("id, full_name, username, batch, shift_id, group_id, section_id, registration_number")
       .eq("department_id", departmentId)
       .eq("role", "student")
       .order("full_name")
@@ -90,6 +94,13 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
         </Button>
       </div>
       {departmentPicker}
+      {(profile.role === "department" || profile.role === "focal_person_intermediate") && (
+        <AddFineForm
+          title="Add Attendance Fine"
+          fineType="attendance_fine"
+          students={students.map((s) => ({ id: s.id, name: s.full_name, registrationNumber: s.registration_number }))}
+        />
+      )}
       <StudentsRosterView
         students={rows}
         shifts={shifts ?? []}

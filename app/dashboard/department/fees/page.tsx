@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { VoucherStatusBadge } from "@/components/features/fees/voucher-status-badge";
 import { LiveRefresh } from "@/components/features/realtime/live-refresh";
 import { ShiftFilter } from "@/components/features/students/shift-filter";
+import { CustomVoucherForm } from "@/components/features/fees/custom-voucher-form";
 
 const PROMOTION_STATUS_LABEL: Record<string, string> = {
   fee_pending: "Awaiting Fee",
@@ -29,7 +30,7 @@ export default async function DepartmentFeesPage({ searchParams }: { searchParam
   const { shiftId } = await searchParams;
 
   const [{ data: students }, { data: shifts }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, shift_id").eq("department_id", profile.departmentId).eq("role", "student"),
+    supabase.from("profiles").select("id, full_name, shift_id, registration_number").eq("department_id", profile.departmentId).eq("role", "student"),
     profile.collegeId
       ? supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order")
       : Promise.resolve({ data: [] }),
@@ -56,7 +57,12 @@ export default async function DepartmentFeesPage({ searchParams }: { searchParam
     <div className="space-y-6">
       <LiveRefresh table="fee_vouchers" />
       <LiveRefresh table="promotions" />
-      <ShiftFilter shifts={shifts ?? []} selectedId={shiftId ?? ""} basePath="/dashboard/department/fees" />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <ShiftFilter shifts={shifts ?? []} selectedId={shiftId ?? ""} basePath="/dashboard/department/fees" />
+        <CustomVoucherForm
+          students={(students ?? []).map((s) => ({ id: s.id, name: s.full_name, registrationNumber: s.registration_number }))}
+        />
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Student Fee Status</CardTitle>

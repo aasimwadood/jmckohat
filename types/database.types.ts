@@ -222,6 +222,7 @@ type FeePaymentsRow = {
   id: string; student_profile_id: string; semester_id: string | null; fee_type: string;
   amount: number; status: FeeStatusEnum; receipt_number: string | null;
   verified_by: string | null; verified_at: string | null; due_date: string | null;
+  notes: string | null;
   created_at: string;
 };
 type PromotionsRow = {
@@ -243,11 +244,14 @@ type FeeStructureComponentsRow = {
 };
 type FeeVouchersRow = {
   id: string; voucher_number: string; promotion_id: string | null; admission_id: string | null;
-  student_profile_id: string | null; fee_structure_id: string; total_amount: number;
+  student_profile_id: string | null; fee_structure_id: string | null; total_amount: number;
   status: FeeVoucherStatusEnum; due_date: string;
   generated_by: string | null; generated_at: string; verified_by: string | null;
   verified_at: string | null; canceled_by: string | null; canceled_at: string | null;
   cancel_reason: string | null; matched_bank_row_id: string | null;
+  // Custom/ad-hoc vouchers (0079): repeat paper, degree fee, etc. — not
+  // tied to a promotion or admission.
+  is_custom: boolean; custom_reason: string | null;
   created_at: string; updated_at: string;
 };
 type FeeVoucherComponentsRow = {
@@ -569,12 +573,12 @@ export type Database = {
       registration_counters: Table<RegistrationCountersRow, "last_seq">;
       admission_documents: Table<AdmissionDocumentsRow, "id" | "uploaded_by" | "uploaded_at">;
 
-      fee_payments: Table<FeePaymentsRow, "id" | "semester_id" | "status" | "receipt_number" | "verified_by" | "verified_at" | "due_date" | "created_at">;
+      fee_payments: Table<FeePaymentsRow, "id" | "semester_id" | "status" | "receipt_number" | "verified_by" | "verified_at" | "due_date" | "notes" | "created_at">;
       promotions: Table<PromotionsRow, "id" | "cgpa" | "academic_standing" | "max_courses" | "status" | "fee_receipt_number" | "fee_verified_by" | "fee_verified_at" | "created_at" | "updated_at">;
 
       fee_structures: Table<FeeStructuresRow, "id" | "status" | "total_amount" | "created_by" | "created_at" | "updated_at">;
       fee_structure_components: Table<FeeStructureComponentsRow, "id" | "sort_order" | "created_at">;
-      fee_vouchers: Table<FeeVouchersRow, "id" | "promotion_id" | "admission_id" | "student_profile_id" | "status" | "generated_by" | "generated_at" | "verified_by" | "verified_at" | "canceled_by" | "canceled_at" | "cancel_reason" | "matched_bank_row_id" | "created_at" | "updated_at">;
+      fee_vouchers: Table<FeeVouchersRow, "id" | "promotion_id" | "admission_id" | "student_profile_id" | "fee_structure_id" | "status" | "generated_by" | "generated_at" | "verified_by" | "verified_at" | "canceled_by" | "canceled_at" | "cancel_reason" | "matched_bank_row_id" | "is_custom" | "custom_reason" | "created_at" | "updated_at">;
       fee_voucher_components: Table<FeeVoucherComponentsRow, "id" | "sort_order">;
       fee_voucher_counters: Table<FeeVoucherCountersRow, "last_seq">;
       fee_bank_imports: Table<FeeBankImportsRow, "id" | "college_id" | "uploaded_by" | "file_path" | "status" | "total_rows" | "valid_rows" | "invalid_rows" | "matched_rows" | "mismatched_rows" | "unmatched_rows" | "duplicate_rows" | "created_at" | "completed_at">;
@@ -664,6 +668,10 @@ export type Database = {
       };
       generate_fee_voucher: { Args: { p_promotion_id: string }; Returns: FeeVouchersRow };
       generate_admission_fee_voucher: { Args: { p_admission_id: string }; Returns: FeeVouchersRow };
+      generate_custom_fee_voucher: {
+        Args: { p_student_profile_id: string; p_reason: string; p_components: Json };
+        Returns: FeeVouchersRow;
+      };
       clear_admission_fee: { Args: { p_admission_id: string; p_voucher_id: string }; Returns: AdmissionsRow };
       manually_clear_admission_fee: { Args: { p_admission_id: string; p_reason: string }; Returns: AdmissionsRow };
       process_fee_bank_import: { Args: { p_import_id: string }; Returns: FeeBankImportsRow };

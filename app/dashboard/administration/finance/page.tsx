@@ -4,10 +4,14 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { PromotionsView, type PromotionRow } from "@/components/features/promotions/promotions-view";
 import { LiveRefresh } from "@/components/features/realtime/live-refresh";
+import { CustomVoucherForm } from "@/components/features/fees/custom-voucher-form";
+import { fetchAllCollegeStudents } from "@/lib/services/students";
 
 export default async function AdministrationFinancePage() {
   const profile = await requireRole("administration");
   const supabase = await createClient();
+
+  const allStudents = profile.collegeId ? await fetchAllCollegeStudents(supabase, profile.collegeId) : [];
 
   const [{ data: payments }, { data: scholarships }, { data: vouchers }] = await Promise.all([
     supabase.from("fee_payments").select("*").order("created_at", { ascending: false }).limit(100),
@@ -69,6 +73,12 @@ export default async function AdministrationFinancePage() {
     <div className="space-y-6">
       <LiveRefresh table="promotions" />
       <LiveRefresh table="fee_vouchers" />
+
+      <div className="flex justify-end">
+        <CustomVoucherForm
+          students={allStudents.map((s) => ({ id: s.id, name: s.full_name, registrationNumber: s.registration_number }))}
+        />
+      </div>
 
       <Card>
         <CardHeader>

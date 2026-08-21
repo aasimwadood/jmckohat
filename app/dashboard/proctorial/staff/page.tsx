@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DutyStatusSelect } from "@/components/features/proctorial/duty-status-select";
 import { FileComplaintForm } from "@/components/features/proctorial/file-complaint-form";
+import { AddFineForm } from "@/components/features/fines/add-fine-form";
+import { fetchAllCollegeStudents } from "@/lib/services/students";
 
 export default async function StaffProctorPage() {
   const profile = await getCurrentProfile();
@@ -27,13 +29,26 @@ export default async function StaffProctorPage() {
     );
   }
 
-  const [{ data: duties }, { data: complaints }] = await Promise.all([
+  const [{ data: duties }, { data: complaints }, collegeStudents] = await Promise.all([
     supabase.from("proctor_duties").select("*").eq("assigned_to", profile.id).order("duty_date", { ascending: false }),
     supabase.from("proctor_complaints").select("*").eq("raised_by", profile.id).order("created_at", { ascending: false }),
+    profile.collegeId ? fetchAllCollegeStudents(supabase, profile.collegeId) : Promise.resolve([]),
   ]);
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Fines</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AddFineForm
+            title="Add Proctorial Board Fine"
+            fineType="proctorial_fine"
+            students={collegeStudents.map((s) => ({ id: s.id, name: s.full_name, registrationNumber: s.registration_number }))}
+          />
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>My Proctor Duty</CardTitle>

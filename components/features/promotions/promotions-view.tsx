@@ -64,8 +64,17 @@ export function PromotionsView({
   const startCycle = () => {
     startTransition(async () => {
       const result = await startPromotionCycleAction(departmentId);
-      if (result?.error) toast.error(result.error);
-      else toast.success("Promotion cycle started for eligible students");
+      if (result.error !== undefined) {
+        toast.error(result.error);
+        return;
+      }
+      const { created, vouchersGenerated, vouchersSkipped } = result;
+      if (created === 0 && vouchersGenerated === 0 && vouchersSkipped === 0) {
+        toast.info("No eligible students for a new promotion cycle right now");
+        return;
+      }
+      const skippedNote = vouchersSkipped > 0 ? `, ${vouchersSkipped} skipped (no fee structure configured)` : "";
+      toast.success(`${created} student(s) added to the cycle, ${vouchersGenerated} voucher(s) generated${skippedNote}`);
     });
   };
 

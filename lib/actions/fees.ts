@@ -7,6 +7,7 @@ import {
   upsertFeeStructureSchema,
   generateVoucherSchema,
   generateAdmissionVoucherSchema,
+  generateCustomVoucherSchema,
   manuallyClearPromotionFeeSchema,
   manuallyClearAdmissionFeeSchema,
   resolveVoucherSchema,
@@ -90,6 +91,41 @@ export async function generateAdmissionFeeVoucherAction(formData: FormData): Pro
 
   await logAudit(profile.id, "generate_admission_fee_voucher", "fee_vouchers", data?.id, {
     admissionId: parsed.data.admissionId,
+    voucherNumber: data?.voucher_number,
+  });
+  revalidatePath("/dashboard", "layout");
+  return {};
+}
+
+export async function generateCustomFeeVoucherAction(formData: FormData): Promise<ActionResult> {
+  const profile = await requireRole("admin", "administration", "department", "focal_person_intermediate");
+
+  const componentsRaw = formData.get("components");
+  let components: unknown;
+  try {
+    components = JSON.parse(typeof componentsRaw === "string" ? componentsRaw : "[]");
+  } catch {
+    return { error: "Invalid fee components" };
+  }
+
+  const parsed = generateCustomVoucherSchema.safeParse({
+    studentId: formData.get("studentId"),
+    reason: formData.get("reason"),
+    components,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("generate_custom_fee_voucher", {
+    p_student_profile_id: parsed.data.studentId,
+    p_reason: parsed.data.reason,
+    p_components: parsed.data.components,
+  });
+  if (error) return { error: error.message };
+
+  await logAudit(profile.id, "generate_custom_fee_voucher", "fee_vouchers", data?.id, {
+    studentId: parsed.data.studentId,
+    reason: parsed.data.reason,
     voucherNumber: data?.voucher_number,
   });
   revalidatePath("/dashboard", "layout");

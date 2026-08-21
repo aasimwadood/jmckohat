@@ -61,8 +61,35 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   let semesterNumber: number;
   let academicSessionId: string | null;
   let shiftId: string | null;
+  let disciplineOverride: string | null = null;
 
-  if (voucher.promotion_id) {
+  if (voucher.is_custom) {
+    // Custom vouchers (repeat paper, degree fee, etc.) aren't tied to a
+    // promotion or admission — identity comes straight from the student's
+    // own profile, and there's no program/semester "discipline" string to
+    // show, so the voucher's reason is shown in its place.
+    const { data: student } = await supabase
+      .from("profiles")
+      .select("full_name, father_name, registration_number, department_id, program_id, college_id, shift_id, current_semester_id")
+      .eq("id", voucher.student_profile_id!)
+      .single();
+    if (!student) return NextResponse.json({ error: "Voucher not found" }, { status: 404 });
+
+    const { data: semester } = student.current_semester_id
+      ? await supabase.from("semesters").select("number, academic_session_id").eq("id", student.current_semester_id).single()
+      : { data: null };
+
+    studentName = student.full_name;
+    fatherName = student.father_name;
+    registrationNumber = student.registration_number;
+    departmentId = student.department_id;
+    programId = student.program_id;
+    collegeId = student.college_id;
+    semesterNumber = semester?.number ?? 0;
+    academicSessionId = semester?.academic_session_id ?? null;
+    shiftId = student.shift_id;
+    disciplineOverride = voucher.custom_reason;
+  } else if (voucher.promotion_id) {
     const { data: promotion } = await supabase.from("promotions").select("to_semester_id").eq("id", voucher.promotion_id).single();
     const { data: student } = await supabase
       .from("profiles")
@@ -157,7 +184,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     studentName,
     fatherName,
     registrationNumber,
-    discipline: `${program?.name ?? "—"} - ${semesterOrdinal(semesterNumber, program?.degree_level)}`,
+    discipline: disciplineOverride ?? `${program?.name ?? "—"} - ${semesterOrdinal(semesterNumber, program?.degree_level)}`,
     departmentName: department?.name ?? "—",
     academicSession: academicSession ? sessionDisplayLabel(semesterNumber, academicSession) : "—",
     components: components ?? [],

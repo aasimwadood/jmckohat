@@ -7,6 +7,10 @@ import { registerCoursesSchema } from "@/lib/validations/promotions";
 import type { ActionResult } from "@/lib/actions/auth";
 import { maxSemesterNumberFor } from "@/lib/utils/degree-level";
 
+export type StartPromotionCycleResult =
+  | { error: string }
+  | { error?: undefined; created: number; vouchersGenerated: number; vouchersSkipped: number };
+
 /**
  * Creates a promotion row (status fee_pending) for every admitted student
  * in the department who has a current semester but no promotion cycle yet
@@ -16,8 +20,16 @@ import { maxSemesterNumberFor } from "@/lib/utils/degree-level";
  * missing piece, scoped conservatively: default max_courses (6) and
  * academic_standing ('good_standing') until a real academic-standing
  * source of truth exists.
+ *
+ * Also auto-generates each newly-eligible (and any previously-stranded)
+ * fee_pending promotion's voucher via the existing generate_fee_voucher()
+ * RPC, so the student doesn't have to separately click "Generate Fee" —
+ * best-effort per student (one missing fee structure shouldn't block the
+ * rest of the department), and the payment-gated pipeline itself is
+ * untouched: a voucher existing is not payment, semester advancement still
+ * only happens at finalizePromotionAction (see 0062_promotion_fee_gating.sql).
  */
-export async function startPromotionCycleAction(departmentId: string): Promise<ActionResult> {
+export async function startPromotionCycleAction(departmentId: string): Promise<StartPromotionCycleResult> {
   await requireRole("department", "admin", "focal_person_intermediate");
   const supabase = await createClient();
 
@@ -28,7 +40,7 @@ export async function startPromotionCycleAction(departmentId: string): Promise<A
     .eq("role", "student")
     .not("current_semester_id", "is", null);
 
-  if (!students || students.length === 0) return {};
+  if (!students || students.length === 0) return { created: 0, vouchersGenerated: 0, vouchersSkipped: 0 };
 
   const semesterIds = [...new Set(students.map((s) => s.current_semester_id!))];
   const { data: semesters } = await supabase
@@ -81,13 +93,34 @@ export async function startPromotionCycleAction(departmentId: string): Promise<A
     }
   }
 
-  if (rows.length === 0) return {};
+  if (rows.length > 0) {
+    const { error } = await supabase.from("promotions").upsert(rows, { onConflict: "student_profile_id,to_semester_id", ignoreDuplicates: true });
+    if (error) return { error: error.message };
+  }
 
-  const { error } = await supabase.from("promotions").upsert(rows, { onConflict: "student_profile_id,to_semester_id", ignoreDuplicates: true });
-  if (error) return { error: error.message };
+  // Voucher generation for every fee_pending promotion in this department
+  // that doesn't have one yet — covers the rows just created above AND any
+  // backlog from an earlier cycle run that couldn't get a voucher at the
+  // time (e.g. no fee structure configured yet). Best-effort: one student's
+  // no_fee_structure_configured must not block the rest of the department.
+  const { data: pendingPromotions } = await supabase
+    .from("promotions")
+    .select("id, student_profile_id, fee_vouchers(id)")
+    .eq("status", "fee_pending")
+    .in("student_profile_id", students.map((s) => s.id));
+
+  let vouchersGenerated = 0;
+  let vouchersSkipped = 0;
+  for (const promotion of pendingPromotions ?? []) {
+    const alreadyHasVoucher = Array.isArray(promotion.fee_vouchers) ? promotion.fee_vouchers.length > 0 : !!promotion.fee_vouchers;
+    if (alreadyHasVoucher) continue;
+    const { error: voucherError } = await supabase.rpc("generate_fee_voucher", { p_promotion_id: promotion.id });
+    if (voucherError) vouchersSkipped++;
+    else vouchersGenerated++;
+  }
 
   revalidatePath("/dashboard", "layout");
-  return {};
+  return { created: rows.length, vouchersGenerated, vouchersSkipped };
 }
 
 export async function registerPromotionCoursesAction(formData: FormData): Promise<ActionResult> {
