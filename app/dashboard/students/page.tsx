@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import Link from "next/link";
+import { Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { StudentsRosterView, type StudentRow } from "@/components/features/students/students-roster-view";
@@ -78,6 +81,14 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button variant="outline" asChild>
+          <Link href="/dashboard/students/import">
+            <Upload className="mr-2 h-4 w-4" />
+            Import from CSV
+          </Link>
+        </Button>
+      </div>
       {departmentPicker}
       <StudentsRosterView
         students={rows}

@@ -40,6 +40,8 @@ export type FeeStructureStatusEnum = "draft" | "active" | "archived";
 export type FeeVoucherStatusEnum = "unpaid" | "verified" | "canceled";
 export type FeeImportStatusEnum = "uploaded" | "previewed" | "completed";
 export type FeeImportRowStatusEnum = "valid" | "invalid" | "matched" | "amount_mismatch" | "unmatched" | "duplicate_row";
+export type StudentImportStatusEnum = "uploaded" | "previewed" | "completed";
+export type StudentImportRowStatusEnum = "valid" | "invalid" | "applied" | "skipped";
 export type FypEvaluationCriterionEnum =
   | "innovation" | "technical_implementation" | "problem_solving"
   | "documentation" | "presentation_and_demo" | "teamwork";
@@ -264,6 +266,20 @@ type FeeBankImportRowsRow = {
   student_identifier: string | null; amount: number | null; transaction_date: string | null;
   transaction_reference: string | null; status: FeeImportRowStatusEnum;
   error_message: string | null; matched_voucher_id: string | null; created_at: string;
+};
+// Shift Management Phase 7 (0078): CSV import for bulk shift/group/section
+// assignment — structural copy of FeeBankImportsRow/FeeBankImportRowsRow.
+type StudentShiftImportsRow = {
+  id: string; college_id: string | null; uploaded_by: string | null; original_filename: string;
+  file_path: string | null; file_hash: string; status: StudentImportStatusEnum;
+  total_rows: number; valid_rows: number; invalid_rows: number; applied_rows: number; skipped_rows: number;
+  created_at: string; completed_at: string | null;
+};
+type StudentShiftImportRowsRow = {
+  id: string; import_id: string; row_number: number; registration_number: string | null;
+  shift_code: string | null; group_code: string | null; section_code: string | null;
+  status: StudentImportRowStatusEnum; error_message: string | null;
+  matched_student_id: string | null; created_at: string;
 };
 
 type FypSemesterConfigRow = {
@@ -563,6 +579,8 @@ export type Database = {
       fee_voucher_counters: Table<FeeVoucherCountersRow, "last_seq">;
       fee_bank_imports: Table<FeeBankImportsRow, "id" | "college_id" | "uploaded_by" | "file_path" | "status" | "total_rows" | "valid_rows" | "invalid_rows" | "matched_rows" | "mismatched_rows" | "unmatched_rows" | "duplicate_rows" | "created_at" | "completed_at">;
       fee_bank_import_rows: Table<FeeBankImportRowsRow, "id" | "voucher_number" | "student_identifier" | "amount" | "transaction_date" | "transaction_reference" | "status" | "error_message" | "matched_voucher_id" | "created_at">;
+      student_shift_imports: Table<StudentShiftImportsRow, "id" | "college_id" | "uploaded_by" | "file_path" | "status" | "total_rows" | "valid_rows" | "invalid_rows" | "applied_rows" | "skipped_rows" | "created_at" | "completed_at">;
+      student_shift_import_rows: Table<StudentShiftImportRowsRow, "id" | "registration_number" | "shift_code" | "group_code" | "section_code" | "status" | "error_message" | "matched_student_id" | "created_at">;
 
       fyp_semester_config: Table<FypSemesterConfigRow, "proposal_deadline" | "mid_semester_deadline" | "final_deadline" | "supervisor_quota" | "max_members" | "is_enabled" | "created_by" | "created_at">;
       fyp_groups: Table<FypGroupsRow, "id" | "title" | "supervisor_profile_id" | "status" | "is_nominated" | "created_at" | "updated_at">;
@@ -649,6 +667,7 @@ export type Database = {
       clear_admission_fee: { Args: { p_admission_id: string; p_voucher_id: string }; Returns: AdmissionsRow };
       manually_clear_admission_fee: { Args: { p_admission_id: string; p_reason: string }; Returns: AdmissionsRow };
       process_fee_bank_import: { Args: { p_import_id: string }; Returns: FeeBankImportsRow };
+      process_student_shift_import: { Args: { p_import_id: string }; Returns: StudentShiftImportsRow };
       manually_resolve_fee_voucher: {
         Args: { p_voucher_id: string; p_action: "verify" | "cancel"; p_reason: string };
         Returns: FeeVouchersRow;
@@ -739,6 +758,8 @@ export type Database = {
       fee_voucher_status: FeeVoucherStatusEnum;
       fee_import_status: FeeImportStatusEnum;
       fee_import_row_status: FeeImportRowStatusEnum;
+      student_import_status: StudentImportStatusEnum;
+      student_import_row_status: StudentImportRowStatusEnum;
       org_status: OrgStatusEnum;
       recruitment_ad_status: RecruitmentAdStatusEnum;
       recruitment_application_status: RecruitmentApplicationStatusEnum;
