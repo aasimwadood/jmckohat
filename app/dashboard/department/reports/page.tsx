@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { letterGrade } from "@/lib/utils/grading";
+import { BreakdownCard } from "@/components/features/reports/breakdown-card";
 
 export default async function DepartmentReportsPage() {
   const profile = await requireRole("department");
@@ -20,10 +21,20 @@ export default async function DepartmentReportsPage() {
   const courseIds = (courses ?? []).map((c) => c.id);
   const courseLabels = new Map((courses ?? []).map((c) => [c.id, `${c.code} - ${c.title}`]));
 
-  const [{ data: results }, { data: attendanceRows }] = await Promise.all([
+  const [{ data: results }, { data: attendanceRows }, { data: students }, { data: shifts }] = await Promise.all([
     courseIds.length > 0 ? supabase.from("results").select("course_id, total").in("course_id", courseIds) : Promise.resolve({ data: [] }),
     courseIds.length > 0 ? supabase.from("attendance").select("course_id, status").in("course_id", courseIds) : Promise.resolve({ data: [] }),
+    supabase.from("profiles").select("id, shift_id").eq("department_id", profile.departmentId).eq("role", "student"),
+    profile.collegeId
+      ? supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order")
+      : Promise.resolve({ data: [] }),
   ]);
+  const shiftName = new Map((shifts ?? []).map((s) => [s.id, s.name]));
+  const shiftCounts = new Map<string, number>();
+  for (const s of students ?? []) {
+    const label = s.shift_id ? (shiftName.get(s.shift_id) ?? "—") : "Unassigned";
+    shiftCounts.set(label, (shiftCounts.get(label) ?? 0) + 1);
+  }
 
   const performanceByCourse = new Map<string, { count: number; sum: number }>();
   const gradeDistribution: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, F: 0 };
@@ -46,6 +57,8 @@ export default async function DepartmentReportsPage() {
 
   return (
     <div className="space-y-6">
+      <BreakdownCard title="Students by Shift" counts={shiftCounts} />
+
       <Card>
         <CardHeader>
           <CardTitle>Student Performance by Course</CardTitle>

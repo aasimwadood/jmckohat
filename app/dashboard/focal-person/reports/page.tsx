@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { BreakdownCard } from "@/components/features/reports/breakdown-card";
 
 // New, not a mirror of app/dashboard/department/reports/page.tsx — that
 // page includes attendance/grade-distribution content tied to concepts
@@ -19,13 +20,19 @@ export default async function FocalPersonReportsPage() {
     );
   }
 
-  const [{ data: admissions }, { data: students }, { data: courses }] = await Promise.all([
+  const [{ data: admissions }, { data: students }, { data: courses }, { data: shifts }, { data: groups }] = await Promise.all([
     supabase.from("admissions").select("status").eq("department_id", profile.departmentId),
-    supabase.from("profiles").select("id").eq("department_id", profile.departmentId).eq("role", "student"),
+    supabase.from("profiles").select("id, shift_id, group_id").eq("department_id", profile.departmentId).eq("role", "student"),
     supabase.from("courses").select("id").eq("department_id", profile.departmentId),
+    profile.collegeId
+      ? supabase.from("shifts").select("id, name").eq("college_id", profile.collegeId).order("sort_order")
+      : Promise.resolve({ data: [] }),
+    supabase.from("groups").select("id, name").eq("department_id", profile.departmentId).order("sort_order"),
   ]);
   const studentIds = (students ?? []).map((s) => s.id);
   const courseIds = (courses ?? []).map((c) => c.id);
+  const shiftName = new Map((shifts ?? []).map((s) => [s.id, s.name]));
+  const groupName = new Map((groups ?? []).map((g) => [g.id, g.name]));
 
   const { data: promotions } =
     studentIds.length > 0
@@ -52,6 +59,15 @@ export default async function FocalPersonReportsPage() {
   const promotionCounts = countBy(promotions);
   const voucherCounts = countBy(vouchersByPromotion);
 
+  const shiftCounts = new Map<string, number>();
+  const groupCounts = new Map<string, number>();
+  for (const s of students ?? []) {
+    const shiftLabel = s.shift_id ? (shiftName.get(s.shift_id) ?? "—") : "Unassigned";
+    shiftCounts.set(shiftLabel, (shiftCounts.get(shiftLabel) ?? 0) + 1);
+    const groupLabel = s.group_id ? (groupName.get(s.group_id) ?? "—") : "Unassigned";
+    groupCounts.set(groupLabel, (groupCounts.get(groupLabel) ?? 0) + 1);
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Intermediate Reports</h1>
@@ -59,6 +75,8 @@ export default async function FocalPersonReportsPage() {
       <BreakdownCard title="Admissions by Status" counts={admissionCounts} />
       <BreakdownCard title="Promotions by Status" counts={promotionCounts} />
       <BreakdownCard title="Fee Vouchers by Status" counts={voucherCounts} />
+      <BreakdownCard title="Students by Shift" counts={shiftCounts} />
+      {(groups ?? []).length > 0 && <BreakdownCard title="Students by Group" counts={groupCounts} />}
 
       <Card>
         <CardHeader>
@@ -70,29 +88,5 @@ export default async function FocalPersonReportsPage() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function BreakdownCard({ title, counts }: { title: string; counts: Map<string, number> }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {counts.size === 0 ? (
-          <p className="text-sm text-gray-500">No data yet.</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {[...counts.entries()].map(([status, count]) => (
-              <div key={status}>
-                <p className="text-xl font-bold text-gray-900">{count}</p>
-                <p className="text-sm capitalize text-gray-500">{status.replace(/_/g, " ")}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }
